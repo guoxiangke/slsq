@@ -31,4 +31,9 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'xbot' => [
+        'endpoint' => env('XBOT_ENDPOINT'),
+        'token' => env('XBOT_TOKEN'),
+    ],
+
 ];
