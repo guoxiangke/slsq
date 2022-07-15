@@ -4,13 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Order;
 use App\Models\Voucher;
+use App\Services\Xbot;
 
 
 
@@ -30,18 +30,45 @@ class MessageController extends Controller
     private $cache;
     private $menu = '';
     public function __invoke(Request $request){
+        Log::error(__LINE__, [$request->all()]);
         // 验证消息
         if(!isset($request['msgid']) || $request['self'] == true)  return response()->json(null);
         
         $this->wxid = $request['wxid'];
-        $this->cache = Cache::tags($this->wxid);
+        $keyword = $request['content'];
         // 群消息处理 
         if(Str::endsWith($this->wxid, '@chatroom')){
-            // 
-            // $this->sendMessage('群消息处理 TODO');
+            if($this->wxid == '21182221243@chatroom'){
+                $contents = explode("\n", $keyword);
+                if($contents[0] == '[地址更新]'){
+                    $secondLine = explode(":", $contents[1]); //客户:AI天空蔚蓝:1
+                    $customer = Customer::find($secondLine[2]);
+                    $this->cache = Cache::tags($customer->wxid); //这时的cache tag有变化
+                    $this->getAddress('不好意思，地址请再详细一点', $customer->wxid);
+                }
+                if($contents[0] == '[电话更新]'){
+                    $secondLine = explode(":", $contents[1]); //客户:AI天空蔚蓝:1
+                    $customer = Customer::find($secondLine[2]);
+                    $this->cache = Cache::tags($customer->wxid); //这时的cache tag有变化
+                    $this->getTelephone('不好意思，手机号好像有误', $customer->wxid);
+                }
+                if($contents[0] == '[客户认领]'){
+                    if(!Str::startsWith('厂～', $request['from_remark'])){
+                        return $this->sendMessage("认领师傅备注不正确！应为：\n厂～1～xxx\n厂～2～yyy\n厂～3～zzz\n厂～4～hhh");
+                        // 请备注好师傅后，让师傅发1～2条消息给 机器人
+                    }
+                    $fromRemark = explode("～", $request['from_remark']);// 厂～1～xxx
+                    $deliverId = $fromRemark[1];// 1~4群
+
+                    $secondLine = explode(":", $contents[1]); //客户:AI天空蔚蓝:1
+                    $customer = Customer::find($secondLine[2]);
+                    $customer->update(['deliver_id' => $deliverId]);//1~4
+                    $this->sendMessage('认领成功！以后此客户单子将发送到x群！');
+                }
+            }
             return $this->_return();
         }
-        $keyword = $request['content'];
+        $this->cache = Cache::tags($this->wxid);
         // 如果是 995, 自由聊天5分钟
         // stop.service.and.chat.as.human
         if($keyword == '995'){
@@ -69,7 +96,12 @@ class MessageController extends Controller
         // }
 
         // 更新用户的备注
-        if($customer->name !== $request['remark']) $customer->update(['name'=>$request['remark']]);
+        // $customer->update(['name'=>$request['remark']]);
+        if($customer->name !== $request['remark']){
+            $customer->name = $request['remark'];
+            // Saving A Single Model Without Events
+            $customer->saveQuietly();
+        }
         
         // 处理 送水工人的 消息
         if($customer->isDeliver()) {
@@ -131,30 +163,7 @@ class MessageController extends Controller
                 // get address or telephone!
                 return $this->sendMessage('支付成功1，创建订单{$order->id} ，发货！');
             }
-
-            // ✅ 如果直接转24元，来3桶的情况！ // 2400%800
-            // $productKey = $this->cache->get('order.product.key');
-            // if($productKey && $paidMoney%$products[$productKey]['price']==0){
-            //     Log::error(__LINE__, [$paidMoney, $productKey, $products[$productKey]['price']]);
-            //     $amount = $paidMoney/$products[$productKey]['price'];//3桶  2400/800
-            //     $productId = (int) $productKey-9390;
-            //     $product = Product::find($productId);
-            //     $productIsVoucher = Str::contains($product->name, ['水票'])?true:false;
-            //     $orderData = [
-            //         'customer_id' => $customer->id,
-            //         'product_id' => $productId,
-            //         'voucher_id' => null, //没有水票
-            //         'price' => $paidMoney, //总价格
-            //         'amount' => $amount, //几桶
-            //         'deliver_id' => null, //todo
-            //         'status' => 1, // 信息整全
-            //     ];
-
-            //     $message = $productIsVoucher?'':"{$amount}桶 "."【{$products[$productKey]['name']}】马上送达！\n支付成功2，创建订单，发货！";
-            //     $this->sendMessage($message);
-            //     return $this->createOrder($orderData);
-            // }
-            
+                
             // ✅ 直接转 准确的 单价 金额
             //  付款 8 16 24 8的倍数的金额
             $next = false;
@@ -243,7 +252,7 @@ class MessageController extends Controller
                 // 从送水师傅那里 确认地址 或再次请求地址修正？
             $customer->update(['address_detail'=>$keyword]);
             $this->cache->forget('wait.address');
-            $this->sendMessage('谢谢，地址信息已收到！');
+            $this->sendMessage('谢谢，地址信息已收到, 如不准确，师傅会再联系您确认！');
             return $this->getAddressOrTelephone();
         }
 
@@ -324,35 +333,37 @@ class MessageController extends Controller
     {
         Order::create($data);
         $this->cache->flush();
-        return $this->getAddressOrTelephone();
+        $this->getAddressOrTelephone();
     }
-    private function getAddressOrTelephone()
-    { 
+
+    protected function getAddressOrTelephone()
+    {
         // 请求存储地址与手机号
         if(!$this->customer->addressIsOk()){
             // $this->sendMessage($this->menu);
-            $this->cache->put('wait.address', true, 360);
-            return $this->sendMessage("请问送到哪里？（例如：城市花园 20-3-201）");
+            $this->getAddress();
             // 2.获取地址后，存储
         }
         if(!$this->customer->telephone){
             // 1.发送请求手机号消息
-            $this->cache->put('wait.telephone', true, 360);
-            return $this->sendMessage('请问您的手机号是。。。');
+            $this->getTelephone();
         }
     }
 
-    public function sendMessage($content, $wxid=null)
+    protected function getTelephone($msg = '请问您的手机号是。。。', $wxid=null){
+        $this->cache->put('wait.telephone', true, 360);
+        return $this->sendMessage($msg, $wxid);
+    }
+
+    protected function getAddress($msg = "请问送到哪里？（例如：城市花园 20-3-201）", $wxid=null){
+        $this->cache->put('wait.address', true, 360);
+        return $this->sendMessage($msg, $wxid);
+    }
+
+    protected function sendMessage($content, $wxid=null)
     {
         $wxid = $wxid?:$this->wxid;
-        return Http::withToken(config('services.xbot.token'))
-            ->post(config('services.xbot.endpoint'), [
-                'type' => 'text',
-                'to' => $wxid,
-                'data' => [
-                    'content' => $content
-                ],
-            ]);
+        return app(Xbot::class)->send($content, $wxid);
     }
 
 }

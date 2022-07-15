@@ -47,11 +47,7 @@ class Customer extends Resource
             Text::make('wxid')->rules('required', 'string', 'max:255'),
             Text::make('telephone')->rules('digits:11'),
             Text::make('详细地址', 'address_detail')->rules('required', 'string', 'max:255'),
-
-            BelongsTo::make('address'),
-            // $table->foreignId('address_id')->nullable()->comment('小区');
-            // // $table->foreignId('deliver_id')->nullable()->comment('配送工人编号1～4+');
-
+            BelongsTo::make('deliver'),
         ];
     }
 

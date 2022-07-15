@@ -15,24 +15,24 @@ class DeliverSeeder extends Seeder
     public function run()
     {
         \App\Models\Deliver::factory()->create([
-            'name' => "厂1～秦汉",
-            'wxid' => 'LI18810929805',
-            'telephone' => '137111',
+            'name' => "sq师傅1群",
+            'wxid' => '19047653243@chatroom',
+            'telephone' => '13711112222',
         ]);
         \App\Models\Deliver::factory()->create([
-            'name' => "厂2～董文平",
-            'wxid' => 'wxid19930311',
-            'telephone' => '137111',
+            'name' => "sq师傅2群",
+            'wxid' => '20208552364@chatroom',
+            'telephone' => '13711112222',
         ]);
         \App\Models\Deliver::factory()->create([
-            'name' => "厂3～祁总",
-            'wxid' => 'wxid_uhmuim1bsyhl21',
-            'telephone' => '137111',
+            'name' => "sq师傅3群",
+            'wxid' => '21103823454@chatroom',
+            'telephone' => '13711112222',
         ]);
         \App\Models\Deliver::factory()->create([
-            'name' => "厂4～秦汉",
-            'wxid' => 'z18393130989',
-            'telephone' => '137111',
+            'name' => "sq师傅4群",
+            'wxid' => '19928756226@chatroom',
+            'telephone' => '13711112222',
         ]);
     }
 }

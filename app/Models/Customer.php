@@ -15,20 +15,18 @@ class Customer extends Model
     protected $dates = ['created_at', 'updated_at', 'deleted_at'];
     
     public function addressIsOk(){
-        return $this->address_detail;//todo
+        return $this->deliver_id || $this->address_detail;//todo
+    }
+
+    public function deliver(){
+        return $this->belongsTo(Deliver::class);
     }
     
-
-    public function address(){
-        return $this->belongsTo(Address::class);
-    }
-    
-
+    // 厂～1～xxx
+    // 厂～2～xxx
+    // 厂～3～xxx
+    // 厂～4～xxx
     public function isDeliver(){
-        return Str::startsWith($this->name ,["厂～"]);
+       return Str::startsWith($this->name ,["厂～"]);
     }
-
-    
-
-
 }
