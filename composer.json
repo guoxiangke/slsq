@@ -6,10 +6,11 @@
     "license": "MIT",
     "require": {
         "php": "^8.0.2",
+        "appstract/laravel-options": "^5.3",
         "guzzlehttp/guzzle": "^7.2",
         "laravel/framework": "^9.11",
-        "laravel/nova": "*",
         "laravel/jetstream": "^2.8",
+        "laravel/nova": "*",
         "laravel/sanctum": "^2.14.1",
         "laravel/tinker": "^2.7",
         "livewire/livewire": "^2.5",

@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\Order;
 use App\Models\Voucher;
 use App\Services\Xbot;
+use Carbon\Carbon;
 
 
 
@@ -38,8 +39,8 @@ class MessageController extends Controller
         $keyword = $request['content'];
         // 群消息处理 
         if(Str::endsWith($this->wxid, '@chatroom')){
-            if($this->wxid == '21182221243@chatroom'){
-                $contents = explode("\n", $keyword);
+            $contents = explode("\n", $keyword);
+            if($this->wxid == '17746965832@chatroom'){
                 if($contents[0] == '[地址更新]'){
                     $secondLine = explode(":", $contents[1]); //客户:AI天空蔚蓝:1
                     $customer = Customer::find($secondLine[2]);
@@ -52,20 +53,100 @@ class MessageController extends Controller
                     $this->cache = Cache::tags($customer->wxid); //这时的cache tag有变化
                     $this->getTelephone('不好意思，手机号好像有误', $customer->wxid);
                 }
+            }
+            if($this->wxid == '21182221243@chatroom'){
                 if($contents[0] == '[客户认领]'){
                     if(!Str::startsWith('厂～', $request['from_remark'])){
-                        return $this->sendMessage("认领师傅备注不正确！应为：\n厂～1～xxx\n厂～2～yyy\n厂～3～zzz\n厂～4～hhh");
+                        return $this->sendMessage("认领师傅备注不正确！应为：\n厂～1～xxx\n厂～2～xxx");
                         // 请备注好师傅后，让师傅发1～2条消息给 机器人
                     }
                     $fromRemark = explode("～", $request['from_remark']);// 厂～1～xxx
                     $deliverId = $fromRemark[1];// 1~4群
+                    // $deliverId = 2;
 
                     $secondLine = explode(":", $contents[1]); //客户:AI天空蔚蓝:1
                     $customer = Customer::find($secondLine[2]);
                     $customer->update(['deliver_id' => $deliverId]);//1~4
-                    $this->sendMessage('认领成功！以后此客户单子将发送到x群！');
+                    $this->sendMessage("认领成功！以后此客户单子将发送到{$deliverId}群！");
+                    // TODO 认领成功前，不可再次下单！
+                    // 把首单发送到指定的群！
+                    Order::where('customer_id', $customer->id)->latest()->first()->update(['deliver_id'=>$deliverId]); // 暂时借用 deliver_id 字段
                 }
             }
+            // sq对账群 统计群 上下班时间设置
+            if($this->wxid == '20388549423@chatroom'){
+                if($keyword == '今日统计'){
+                    $orders = Order::whereDate('created_at', Carbon::today())->get();
+                    $message = "订单总数：" . $orders->count();
+                    $total = $orders->reduce(function ($carry, $order) {
+                        $productIsVoucher = Str::contains($order->product->name, ['水票'])?true:false;
+                        if($productIsVoucher){
+                            $price = $order->price;
+                        }else{
+                            $price = $order->amount * $order->price??0;
+                        }
+                        return $carry + $price;
+                    });
+
+                    $message .= "\n收款总数：" . $total/100;
+                    // orders orderByProductId 
+                    $orders1 = $orders->mapToGroups(function ($item, $key) {
+                        return [$item['product_id'] => $item];
+                    });
+                    foreach($orders1 as $productId => $orders2){
+                        $amount = 0;
+                        $price = 0;
+                        $paidByVoucher = 0; //是否是水票支付
+                        foreach ($orders2 as $key => $order) {
+                            
+                            $productIsVoucher = Str::contains($order->product->name, ['水票'])?true:false;
+                            if($productIsVoucher){
+                                $price += $order->price;
+                                $amount += $order->amount/$order->product->amount;
+                            }else{
+                                $amount += $order->amount;
+                                $price += $order->amount * $order->price??0;
+                            }
+                            if($order->voucher_id) {
+                                $paidByVoucher += $order->amount;
+                            }
+                        }
+                        $price = $price/100;
+
+                        $message .= "\n==================";
+                        $message .= "\n{$order->product->name}：";
+                        $message .= "\n数量：{$amount}".($paidByVoucher?"(水票{$paidByVoucher})":'');
+                        $message .= "\n金额：{$price}";
+                    }
+                    $this->sendMessage($message);
+                }
+                // 上下班时间设置:on:7
+                // 上下班时间设置:off:23
+                if(Str::startsWith($keyword,'上下班时间设置:')){
+                    $tmpArr = explode(':', $keyword);
+                    $type = $tmpArr[1];
+                    $value = $tmpArr[2];
+                    // TODO 时间0-24小时设定
+                    option([$type => $value]);
+                    $this->sendMessage('设置成功！');
+                }
+            }
+
+            // 1~4群，订单跟踪
+            if($contents[0] == '[订单跟踪]'){
+                if(Str::startsWith('厂～', $request['from_remark'])){
+                    $customer = Customer::where(['wxid'=> $request['from']])->first();
+                    $secondLine = explode(":", $contents[1]); //产品名字:1个:1
+                    $orderId = $secondLine[2];
+                    $order = Order::find($orderId);
+                    $order->deliver_id = $customer->id;
+                    $order->status = 4; //4 配送完毕，收到配送人员反馈
+                    $order->saveQuietly(); // 不要OrderObserver
+                    $this->sendMessage('谢谢师傅，辛苦了！');
+                }else{
+                    return $this->sendMessage("认领师傅备注不正确！应为：\n厂～1～xxx\n厂～2～xxx");
+                }
+            }            
             return $this->_return();
         }
         $this->cache = Cache::tags($this->wxid);
@@ -77,6 +158,7 @@ class MessageController extends Controller
         }
         if($keyword == '999'){
             // 转发消息 到 客服群！
+            $this->sendMessage('客户发送999请求退款！', "20479347997@chatroom");
             return $this->sendMessage('我们正在处理您退款请求，一般24小时内到账，谢谢！');
         }
 
@@ -90,10 +172,6 @@ class MessageController extends Controller
         // 查找或存储用户
         $customer = Customer::firstOrCreate(['wxid'=> $this->wxid]); // "wxid":"bluesky_still","remark":"AI天空蔚蓝"
         $this->customer = $customer;
-        // if($customer->wasRecentlyCreated) {
-        //     // $this->_askForAddress(); 
-        //     return $this->_return();
-        // }
 
         // 更新用户的备注
         // $customer->update(['name'=>$request['remark']]);
@@ -106,6 +184,14 @@ class MessageController extends Controller
         // 处理 送水工人的 消息
         if($customer->isDeliver()) {
             return $this->_return();
+        }
+
+        // 上下班 时间处理
+        $now = date('G.i'); // 0-24 (7.30)
+        $on = option('on', 8);
+        $off = option('off', 21);
+        if($now >= $off || $now <= $on){
+            return $this->sendMessage("不好意思，上班时间：{$on}-{$off}");
         }
 
         ////////////////////////////Menu//////////////////////////////
@@ -196,7 +282,7 @@ class MessageController extends Controller
                         'customer_id' => $customer->id,
                         'product_id' => $productId,
                         'amount' => $tickets, //数量
-                        // 'deliver_id' => $deliverId,
+                        'deliver_id' => null,
                         'price' => $nextprice,
                         'status' => 1, //1 已wx支付
                     ];
@@ -213,14 +299,21 @@ class MessageController extends Controller
                     'customer_id' => $customer->id,
                     'product_id' => $productId,
                     'amount' => $nextAmount, //数量
-                    // 'deliver_id' => $deliverId,
+                    // 'deliver_id' => $customer->deliver_id,
                     'status' => 1, //1 已wx支付
                     'price' => $nextprice,
                 ];
-                $this->sendMessage("师傅马上出发！" . "\n【{$products[$productKey]['name']}】{$nextAmount}桶");
+                $this->sendMessage("师傅马上出发1！" . "\n【{$products[$productKey]['name']}】{$nextAmount}桶");
                 return $this->createOrder($orderData);
             }else{
                 // 转账金额 不在 所有的价格范围里
+                $message = "转账金额有误：";
+                $message .= "\n金额:" . $paidMoney/100 ;
+                $message .= "\n客户:" . $customer->name. ':'. $customer->id ;
+                $message .= "\n电话:" . $customer->telephone;
+                $message .= "\n地址:" . $customer->address_detail;
+
+                $this->sendMessage($message, "20479347997@chatroom");
                 return $this->sendMessage("转账金额有误，请发起语音通话后, 回复【999】，24小时内退款！");
             }
         }
@@ -274,7 +367,7 @@ class MessageController extends Controller
                     'voucher_id' => null, //没有水票
                     'price' => $priceInDB, //总价格
                     'amount' => $amount, //几桶
-                    'deliver_id' => null, //todo
+                    // 'deliver_id' => $customer->deliver_id,
                     'status' => 1, // 信息整全
                 ];
                 $this->cache->put('order.need.pay', $orderData, 300);
@@ -291,7 +384,7 @@ class MessageController extends Controller
                     'product_id' => 1, //product_id: "9391",
                     'amount' => 1, //几桶
                     'voucher_id' => $voucher->id,
-                    // 'deliver_id' => $deliverId,
+                    // 'deliver_id' => $customer->deliver_id,
                     'status' => 1, // 信息整全
                 ];
 
@@ -305,7 +398,7 @@ class MessageController extends Controller
                 $productIsVoucher = Str::contains($product->name, ['水票'])?true:false;
                 {
                     $price = $products[$productKey]['price']/100;
-                    $message = "微信直接转账 ¥{$price}，". ($productIsVoucher?"您将获得":"师傅马上出发！") ."\n【{$products[$productKey]['name']}】" . ($productIsVoucher?"\n购买成功后自动入账、自动抵付":"\n若定多{$product->unit}，请转 {$product->unit}数X{$price}元");
+                    $message = "微信直接转账 ¥{$price}，". ($productIsVoucher?"您将获得":"师傅马上出发2！") ."\n【{$products[$productKey]['name']}】" . ($productIsVoucher?"\n购买成功后自动入账、自动抵付":"\n若定多{$product->unit}，请转 {$product->unit}数X{$price}元");
                     if($product->unit == '桶'){
                         $message .= "\n请问要几桶？";
                     }
@@ -341,12 +434,12 @@ class MessageController extends Controller
         // 请求存储地址与手机号
         if(!$this->customer->addressIsOk()){
             // $this->sendMessage($this->menu);
-            $this->getAddress();
+            return $this->getAddress();
             // 2.获取地址后，存储
         }
         if(!$this->customer->telephone){
             // 1.发送请求手机号消息
-            $this->getTelephone();
+            return $this->getTelephone();
         }
     }
 

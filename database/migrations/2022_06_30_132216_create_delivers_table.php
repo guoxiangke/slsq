@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('delivers', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('name')->comment('群名');
             $table->string('wxid');
             $table->string('telephone')->nullable();
             $table->softDeletes();

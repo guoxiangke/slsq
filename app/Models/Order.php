@@ -24,7 +24,10 @@ class Order extends Model
     public function voucher(){
         return $this->belongsTo(Voucher::class);
     }
+    public function group(){ //微信群
+        return $this->belongsTo(Deliver::class, 'deliver_id');
+    }
     public function deliver(){
-        return $this->belongsTo(Deliver::class);
+        return $this->belongsTo(Customer::class, 'deliver_id');
     }
 }

@@ -16,19 +16,12 @@ class CustomerObserver
     public function updated(Customer $customer)
     {
         // sq地址电话更正群
-        // $correct = '21124023139@chatroom';
-        $to = '21182221243@chatroom'; //分单群
+        $to = "17746965832@chatroom";
         if($customer->wasChanged('address_detail')){
             $message  = "[地址更新]";
             $message .= "\n客户:" . $customer->name. ':'. $customer->id ;
             $message .= "\n地址:" . $customer->address_detail;
-            $message .= "\n如地址有误，请转发本消息至本群请求用户更正";
-            app(Xbot::class)->send($message, $to);
-
-            $message  = "[客户认领]";
-            $message .= "\n客户:" . $customer->name. ':'. $customer->id ;
-            $message .= "\n地址:" . $customer->address_detail;
-            $message .= "\n认领此顾客，请转发本消息至本群";
+            $message .= "\n如地址有误，请转发至本群请求用户更正";
             return app(Xbot::class)->send($message, $to);
         }
 
@@ -36,14 +29,18 @@ class CustomerObserver
             $message  = "[电话更新]";
             $message .= "\n客户:" . $customer->name. ':'. $customer->id ;
             $message .= "\n电话:" . $customer->telephone;
-            $message .= "\n如电话有误，请转发本消息至本群请求用户更正";
+            $message .= "\n地址:" . $customer->address_detail;
+            $message .= "\n如电话有误，请转发至本群请求用户更正";
             app(Xbot::class)->send($message, $to);
-
-            $message  = "[客户认领]";
-            $message .= "\n客户:" . $customer->name. ':'. $customer->id ;
-            $message .= "\n电话:" . $customer->telephone;
-            $message .= "\n认领此顾客，请转发本消息至本群";
-            return app(Xbot::class)->send($message, $to);
+            
+            //分单群
+            if(!$customer->deliver_id){
+                $message  = "[客户认领]";
+                $message .= "\n客户:" . $customer->name. ':'. $customer->id ;
+                $message .= "\n电话:" . $customer->telephone;
+                $message .= "\n认领此顾客，请转发至本群";
+                return app(Xbot::class)->send($message, '21182221243@chatroom'); 
+            }
         }
 
     }
