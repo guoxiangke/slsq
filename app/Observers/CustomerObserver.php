@@ -38,6 +38,7 @@ class CustomerObserver
                 $message  = "[客户认领]";
                 $message .= "\n客户:" . $customer->name. ':'. $customer->id ;
                 $message .= "\n电话:" . $customer->telephone;
+                $message .= "\n地址:" . $customer->address_detail;
                 $message .= "\n认领此顾客，请转发至本群";
                 return app(Xbot::class)->send($message, '21182221243@chatroom'); 
             }

@@ -56,7 +56,8 @@ class MessageController extends Controller
             }
             if($this->wxid == '21182221243@chatroom'){
                 if($contents[0] == '[客户认领]'){
-                    if(!Str::startsWith('厂～', $request['from_remark'])){
+                    // 厂～1～小懂～下车站
+                    if(!Str::startsWith($request['from_remark'], '厂～')){
                         return $this->sendMessage("认领师傅备注不正确！应为：\n厂～1～xxx\n厂～2～xxx");
                         // 请备注好师傅后，让师傅发1～2条消息给 机器人
                     }
@@ -134,7 +135,7 @@ class MessageController extends Controller
 
             // 1~4群，订单跟踪
             if($contents[0] == '[订单跟踪]'){
-                if(Str::startsWith('厂～', $request['from_remark'])){
+                if(Str::startsWith($request['from_remark'],'厂～')){
                     $customer = Customer::where(['wxid'=> $request['from']])->first();
                     $secondLine = explode(":", $contents[1]); //产品名字:1个:1
                     $orderId = $secondLine[2];
