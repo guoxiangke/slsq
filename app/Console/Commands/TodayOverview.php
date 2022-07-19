@@ -73,14 +73,9 @@ class TodayOverview extends Command
             $message .= "\n数量：{$amount}".($paidByVoucher?"(水票{$paidByVoucher})":'');
             $message .= "\n金额：{$price}";
         }
-        $this->sendMessage($message);
+        // $this->sendMessage($message);
+        app(Xbot::class)->send($message, "20388549423@chatroom");
 
         return 0;
-    }
-
-    protected function sendMessage($content, $wxid=null)
-    {
-        $wxid = $wxid?:"20388549423@chatroom";
-        return app(Xbot::class)->send($content, $wxid);
     }
 }
