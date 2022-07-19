@@ -5,13 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Order;
 use App\Models\Voucher;
 use App\Services\Xbot;
-use Carbon\Carbon;
 
 
 
@@ -77,49 +77,7 @@ class MessageController extends Controller
             // sq对账群 统计群 上下班时间设置
             if($this->wxid == '20388549423@chatroom'){
                 if($keyword == '今日统计'){
-                    $orders = Order::whereDate('created_at', Carbon::today())->get();
-                    $message = "订单总数：" . $orders->count();
-                    $total = $orders->reduce(function ($carry, $order) {
-                        $productIsVoucher = Str::contains($order->product->name, ['水票'])?true:false;
-                        if($productIsVoucher){
-                            $price = $order->price;
-                        }else{
-                            $price = $order->amount * $order->price??0;
-                        }
-                        return $carry + $price;
-                    });
-
-                    $message .= "\n收款总数：" . $total/100;
-                    // orders orderByProductId 
-                    $orders1 = $orders->mapToGroups(function ($item, $key) {
-                        return [$item['product_id'] => $item];
-                    });
-                    foreach($orders1 as $productId => $orders2){
-                        $amount = 0;
-                        $price = 0;
-                        $paidByVoucher = 0; //是否是水票支付
-                        foreach ($orders2 as $key => $order) {
-                            
-                            $productIsVoucher = Str::contains($order->product->name, ['水票'])?true:false;
-                            if($productIsVoucher){
-                                $price += $order->price;
-                                $amount += $order->amount/$order->product->amount;
-                            }else{
-                                $amount += $order->amount;
-                                $price += $order->amount * $order->price??0;
-                            }
-                            if($order->voucher_id) {
-                                $paidByVoucher += $order->amount;
-                            }
-                        }
-                        $price = $price/100;
-
-                        $message .= "\n==================";
-                        $message .= "\n{$order->product->name}：";
-                        $message .= "\n数量：{$amount}".($paidByVoucher?"(水票{$paidByVoucher})":'');
-                        $message .= "\n金额：{$price}";
-                    }
-                    $this->sendMessage($message);
+                    return Artisan::call('overview:today');
                 }
                 // 上下班时间设置:on:7
                 // 上下班时间设置:off:23
