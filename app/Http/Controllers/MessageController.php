@@ -28,6 +28,7 @@ class MessageController extends Controller
 
     // {"msgid":104730,"type":"text","wxid":"bluesky_still","remark":"AI天空蔚蓝","seat_user_id":1,"self":false,"content":"good"}
     private $wxid = '';
+    private $remark = '';
     private $cache;
     private $menu = '';
     public function __invoke(Request $request){
@@ -35,26 +36,32 @@ class MessageController extends Controller
         // 验证消息
         if(!isset($request['msgid']) || $request['self'] == true)  return response()->json(null);
         
-        $wxidOrRoom = $request['wxid'];
-        $this->wxid = $request['from']??$wxidOrRoom;//room or personal
+        $wxidOrCurrentRoom = $request['wxid'];
+        $isRoom = isset($request['from']);
+        // personal
+        $this->wxid = $wxidOrCurrentRoom;
+        $this->remark = $request['remark'];
+        if($isRoom){
+             $this->wxid = $request['from'];
+             $this->remark = $request['from_remark'];
+        }
 
         // 查找或存储用户
         $customer = Customer::firstOrCreate(['wxid'=> $this->wxid]); // "wxid":"bluesky_still","remark":"AI天空蔚蓝"
         $this->customer = $customer;
 
         // 更新用户的备注
-        // $customer->update(['name'=>$request['remark']]);
-        if($customer->name !== $request['remark']){
-            $customer->name = $request['remark'];
+        if($customer->name !== $this->remark){
+            $customer->name = $this->remark;
             // Saving A Single Model Without Events
             $customer->saveQuietly();
         }
 
         $keyword = $request['content'];
         // 群消息处理 
-        if(isset($request['from'])){ //Str::endsWith($this->wxid, '@chatroom')
+        if($isRoom){ //Str::endsWith($this->wxid, '@chatroom')
             $contents = explode("\n", $keyword);
-            if($wxidOrRoom == '17746965832@chatroom'){
+            if($wxidOrCurrentRoom == '17746965832@chatroom'){
                 if($contents[0] == '[地址更新]'){
                     $secondLine = explode(":", $contents[1]); //客户:AI天空蔚蓝:1
                     $customer = Customer::find($secondLine[2]);
@@ -68,28 +75,28 @@ class MessageController extends Controller
                     $this->getTelephone('不好意思，手机号好像有误', $customer->wxid);
                 }
             }
-            if($wxidOrRoom == '21182221243@chatroom'){
+            if($wxidOrCurrentRoom == '21182221243@chatroom'){
                 if($contents[0] == '[客户认领]'){
                     // 厂～1～小懂～下车站
-                    if(!Str::startsWith($request['from_remark'], '厂～')){
-                        return $this->sendMessage("认领师傅备注不正确！应为：\n厂～1～xxx\n厂～2～xxx");
+                    if(!Str::startsWith($this->remark, '厂～')){
+                        return $this->sendMessage("认领师傅备注不正确！应为：\n厂～1～xxx\n厂～2～xxx", $wxidOrCurrentRoom);
                         // 请备注好师傅后，让师傅发1～2条消息给 机器人
                     }
-                    $fromRemark = explode("～", $request['from_remark']);// 厂～1～xxx
+                    $fromRemark = explode("～", $this->remark);// 厂～1～xxx
                     $deliverId = $fromRemark[1];// 1~4群
                     // $deliverId = 2;
 
                     $secondLine = explode(":", $contents[1]); //客户:AI天空蔚蓝:1
                     $customer = Customer::find($secondLine[2]);
                     $customer->update(['deliver_id' => $deliverId]);//1~4
-                    $this->sendMessage("认领成功！此客户定单将发送到{$deliverId}群");
+                    $this->sendMessage("认领成功！此客户定单将发送到{$deliverId}群", $wxidOrCurrentRoom);
                     // TODO 认领成功前，不可再次下单！
                     // 把首单发送到指定的群！
                     Order::where('customer_id', $customer->id)->latest()->first()->update(['deliver_id'=>$deliverId]); // 暂时借用 deliver_id 字段
                 }
             }
             // sq对账群 统计群 上下班时间设置
-            if($wxidOrRoom == '20388549423@chatroom'){
+            if($wxidOrCurrentRoom == '20388549423@chatroom'){
                 if($keyword == '今日统计'){
                     return Artisan::call('overview:today');
                 }
@@ -101,13 +108,13 @@ class MessageController extends Controller
                     $value = $tmpArr[2];
                     // TODO 时间0-24小时设定
                     option([$type => $value]);
-                    $this->sendMessage('设置成功！');
+                    $this->sendMessage('设置成功！', $wxidOrCurrentRoom);
                 }
             }
 
             // 1~4群，订单跟踪
             if($contents[0] == '[订单跟踪]'){
-                if(Str::startsWith($request['from_remark'],'厂～')){
+                if(Str::startsWith($this->remark,'厂～')){
                     $customer = Customer::where(['wxid'=> $request['from']])->first();
                     $secondLine = explode(":", $contents[1]); //产品名字:1个:1
                     $orderId = $secondLine[2];
@@ -115,7 +122,7 @@ class MessageController extends Controller
                     $order->deliver_id = $customer->id;
                     $order->status = 4; //4 配送完毕，收到配送人员反馈
                     $order->saveQuietly(); // 不要OrderObserver
-                    $this->sendMessage("[抱拳]辛苦了");
+                    $this->sendMessage("[抱拳]辛苦了", );
                 }else{
                     return $this->sendMessage("认领师傅备注不正确！应为：\n厂～1～xxx\n厂～2～xxx");
                 }
