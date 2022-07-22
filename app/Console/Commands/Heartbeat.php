@@ -28,7 +28,8 @@ class Heartbeat extends Command
      */
     public function handle()
     {
-        app(Xbot::class)->send(now()."\n心跳检测，5分钟一次\n如超过5分钟，说明掉线了，请及时处理", 'filehelper');
+        // app(Xbot::class)->send(now()."\n心跳检测，5分钟一次\n如超过5分钟，说明掉线了，请及时处理", 'filehelper');
+        app(Xbot::class)->send('同步通讯录', 'filehelper');
         return 0;
     }
 }
