@@ -403,11 +403,13 @@ class MessageController extends Controller
     }
 
     protected function getTelephone($msg = '请问您的手机号是。。。', $wxid=null){
+        $this->cache->flush();
         $this->cache->put('wait.telephone', true, 360);
         return $this->sendMessage($msg, $wxid);
     }
 
     protected function getAddress($msg = "请问送到哪里？（例如：城市花园 20-3-201）", $wxid=null){
+        $this->cache->flush();
         $this->cache->put('wait.address', true, 360);
         return $this->sendMessage($msg, $wxid);
     }

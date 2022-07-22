@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use App\Models\Order;
 use Carbon\Carbon;
 use App\Services\Xbot;
+use Illuminate\Support\Str;
 
 class TodayOverview extends Command
 {
