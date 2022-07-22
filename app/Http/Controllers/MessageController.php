@@ -35,7 +35,8 @@ class MessageController extends Controller
         // 验证消息
         if(!isset($request['msgid']) || $request['self'] == true)  return response()->json(null);
         
-        $this->wxid = $request['wxid'];
+        $wxidOrRoom = $request['wxid'];
+        $this->wxid = $request['from']??$wxidOrRoom;//room or personal
 
         // 查找或存储用户
         $customer = Customer::firstOrCreate(['wxid'=> $this->wxid]); // "wxid":"bluesky_still","remark":"AI天空蔚蓝"
@@ -48,12 +49,12 @@ class MessageController extends Controller
             // Saving A Single Model Without Events
             $customer->saveQuietly();
         }
-        
+
         $keyword = $request['content'];
         // 群消息处理 
-        if(Str::endsWith($this->wxid, '@chatroom')){
+        if(isset($request['from'])){ //Str::endsWith($this->wxid, '@chatroom')
             $contents = explode("\n", $keyword);
-            if($this->wxid == '17746965832@chatroom'){
+            if($wxidOrRoom == '17746965832@chatroom'){
                 if($contents[0] == '[地址更新]'){
                     $secondLine = explode(":", $contents[1]); //客户:AI天空蔚蓝:1
                     $customer = Customer::find($secondLine[2]);
@@ -67,7 +68,7 @@ class MessageController extends Controller
                     $this->getTelephone('不好意思，手机号好像有误', $customer->wxid);
                 }
             }
-            if($this->wxid == '21182221243@chatroom'){
+            if($wxidOrRoom == '21182221243@chatroom'){
                 if($contents[0] == '[客户认领]'){
                     // 厂～1～小懂～下车站
                     if(!Str::startsWith($request['from_remark'], '厂～')){
@@ -88,7 +89,7 @@ class MessageController extends Controller
                 }
             }
             // sq对账群 统计群 上下班时间设置
-            if($this->wxid == '20388549423@chatroom'){
+            if($wxidOrRoom == '20388549423@chatroom'){
                 if($keyword == '今日统计'){
                     return Artisan::call('overview:today');
                 }
