@@ -17,7 +17,7 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')->hourly();
         $schedule->command('overview:today')->cron('0 12,20 * * *');
-        $schedule->command('heartbeat:hit')->cron('*/5 7-20 * * *');
+        $schedule->command('heartbeat:hit')->cron('*/5 * * * *');
     }
 
     /**
