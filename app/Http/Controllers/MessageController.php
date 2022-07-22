@@ -68,7 +68,7 @@ class MessageController extends Controller
                     $secondLine = explode(":", $contents[1]); //客户:AI天空蔚蓝:1
                     $customer = Customer::find($secondLine[2]);
                     $customer->update(['deliver_id' => $deliverId]);//1~4
-                    $this->sendMessage("认领成功！以后此客户单子将发送到{$deliverId}群！");
+                    $this->sendMessage("认领成功！此客户定单将发送到{$deliverId}群");
                     // TODO 认领成功前，不可再次下单！
                     // 把首单发送到指定的群！
                     Order::where('customer_id', $customer->id)->latest()->first()->update(['deliver_id'=>$deliverId]); // 暂时借用 deliver_id 字段
@@ -101,7 +101,7 @@ class MessageController extends Controller
                     $order->deliver_id = $customer->id;
                     $order->status = 4; //4 配送完毕，收到配送人员反馈
                     $order->saveQuietly(); // 不要OrderObserver
-                    $this->sendMessage('谢谢师傅，辛苦了！');
+                    $this->sendMessage("[抱拳]辛苦了");
                 }else{
                     return $this->sendMessage("认领师傅备注不正确！应为：\n厂～1～xxx\n厂～2～xxx");
                 }
@@ -177,15 +177,16 @@ class MessageController extends Controller
                 
             }
         }
-        $menu = "请回复产品编号或微支付对应金额" . $menu;
+        $menu = "[微笑]您好，我是订水智能客服小泉\n[赞]请回复编号订水" . $menu;
         $voucher = null;
         if($hasVouchers) {
             // 水票Left: 多个电子水票账户！
             foreach ($vouchers as $voucher) {
-                $menu .="\n您的No:{$voucher->id}账户有电子水票{$voucher->left} 张，回复【9391】可自动抵付";
+                $menu .="\n👤电子水票账户{$voucher->id}剩余{$voucher->left}张，回复【9391】可自动抵付";
             }
             $voucher = $vouchers->first(); //后面使用第一个账户
         }
+        $menu .="\n[呲牙]极速订水？微信支付对应金额即可！";
         $this->menu = $menu;
         ////////////////////////////Menu//////////////////////////////
         
@@ -245,7 +246,7 @@ class MessageController extends Controller
                         'price' => $nextprice,
                         'status' => 1, //1 已wx支付
                     ];
-                    $this->sendMessage("{$tickets}张水票已入您的电子账户，编号No:{$voucher->id}\n回复【9391】进行水票订水！");
+                    $this->sendMessage("{$tickets}张水票已入您的电子账户，编号No:{$voucher->id}\n回复【9391】即可水票订水！");
                     return $this->createOrder($orderData);
                 }else{
                     // 购买桶水
@@ -262,7 +263,7 @@ class MessageController extends Controller
                     'status' => 1, //1 已wx支付
                     'price' => $nextprice,
                 ];
-                $this->sendMessage("师傅马上出发" . "\n【{$products[$productKey]['name']}】{$nextAmount}桶");
+                $this->sendMessage("【{$products[$productKey]['name']}】{$nextAmount}桶"."\n马上送到！");
                 return $this->createOrder($orderData);
             }else{
                 // 转账金额 不在 所有的价格范围里
@@ -273,7 +274,7 @@ class MessageController extends Controller
                 $message .= "\n地址:" . $customer->address_detail;
 
                 $this->sendMessage($message, "20479347997@chatroom");
-                return $this->sendMessage("转账金额有误，请发起语音通话后, 回复【999】，24小时内退款！");
+                return $this->sendMessage("转账金额有误, 回复【999】，24小时内退款！");
             }
         }
         //product 9391~9397
@@ -290,9 +291,10 @@ class MessageController extends Controller
             if(Str::length($telephone)==11 && Str::startsWith($telephone,[1])){
                 $customer->update(['telephone'=>$telephone]);
                 $this->cache->forget('wait.telephone');
-                return $this->sendMessage('谢谢，手机信息已收到！');
+                return $this->sendMessage("[抱拳]谢谢，收到");
+                // 把上一个单子发一遍！告诉师傅已出发！
             }else{
-                return $this->sendMessage('手机号不正确，请检查一下。。。');
+                return $this->sendMessage('❌手机号错误，请重新回复准确手机号码！');
             }
         }
 
@@ -304,7 +306,7 @@ class MessageController extends Controller
                 // 从送水师傅那里 确认地址 或再次请求地址修正？
             $customer->update(['address_detail'=>$keyword]);
             $this->cache->forget('wait.address');
-            $this->sendMessage('谢谢，地址信息已收到, 如不准确，师傅会再联系您确认！');
+            $this->sendMessage("[抱拳]谢谢，收到");
             return $this->getAddressOrTelephone();
         }
 
@@ -330,7 +332,7 @@ class MessageController extends Controller
                     'status' => 1, // 信息整全
                 ];
                 $this->cache->put('order.need.pay', $orderData, 300);
-                return $this->sendMessage("ok, {$amount}桶水，微信转账".($priceInDB/100)."元\n，师傅马上送到！5分钟后失效，需要重新下单");
+                return $this->sendMessage("[OK]{$amount}桶水，微信转账".($priceInDB/100)."元\n，师傅马上送到！5分钟后失效，需要重新下单");
             }
 
             // 水票购水
@@ -357,11 +359,7 @@ class MessageController extends Controller
                 $productIsVoucher = Str::contains($product->name, ['水票'])?true:false;
                 {
                     $price = $products[$productKey]['price']/100;
-                    $message = "微信直接转账 ¥{$price}，". ($productIsVoucher?"您将获得":"师傅马上出发！") ."\n【{$products[$productKey]['name']}】" . ($productIsVoucher?"\n购买成功后自动入账、自动抵付":"\n若定多{$product->unit}，请转 {$product->unit}数X{$price}元");
-                    if($product->unit == '桶'){
-                        $message .= "\n请问要几桶？";
-                    }
-                    $message.="\n红包拒收，24小时自动退回";
+                    $message = "微信转账 ¥{$price}，". ($productIsVoucher?"您将获得":"师傅马上出发！") ."\n【{$products[$productKey]['name']}】" . ($productIsVoucher?"\n购买成功后自动入账、自动抵付":"\n若定多{$product->unit}，请转¥{$product->unit}数X{$price}元");
                     $this->cache->put('order.need.amount', true, 60);
                     return $this->sendMessage($message);
                 }
@@ -402,13 +400,13 @@ class MessageController extends Controller
         }
     }
 
-    protected function getTelephone($msg = '请问您的手机号是。。。', $wxid=null){
+    protected function getTelephone($msg = '请问您的手机号是?', $wxid=null){
         $this->cache->flush();
         $this->cache->put('wait.telephone', true, 360);
         return $this->sendMessage($msg, $wxid);
     }
 
-    protected function getAddress($msg = "请问送到哪里？（例如：城市花园 20-3-201）", $wxid=null){
+    protected function getAddress($msg = "请留下送水地址", $wxid=null){
         $this->cache->flush();
         $this->cache->put('wait.address', true, 360);
         return $this->sendMessage($msg, $wxid);

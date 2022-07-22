@@ -71,7 +71,7 @@ class TodayOverview extends Command
 
             $message .= "\n==================";
             $message .= "\n{$order->product->name}：";
-            $message .= "\n数量：{$amount}".($paidByVoucher?"(水票{$paidByVoucher})":'');
+            $message .= "\n数量：{$amount}".($paidByVoucher?"(含{$paidByVoucher})张水票":'');
             $message .= "\n金额：¥{$price}";
         }
         // $this->sendMessage($message);
