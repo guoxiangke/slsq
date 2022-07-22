@@ -19,19 +19,20 @@ class CustomerObserver
         $to = "17746965832@chatroom";
         if($customer->wasChanged('address_detail')){
             $message  = "[地址更新]";
-            $message .= "\n客户:" . $customer->name. ':'. $customer->id ;
+            $message .= "\n客户:" . $customer->name. ':'. $customer->id;
             $message .= "\n地址:" . $customer->address_detail;
             $message .= "\n如地址有误，请转发至本群请求用户更正";
             return app(Xbot::class)->send($message, $to);
         }
-
+        
         if($customer->wasChanged('telephone')){
             $message  = "[电话更新]";
-            $message .= "\n客户:" . $customer->name. ':'. $customer->id ;
+            $message .= "\n客户:" . $customer->name. ':'. $customer->id;
             $message .= "\n电话:" . $customer->telephone;
             $message .= "\n地址:" . $customer->address_detail;
             $message .= "\n如电话有误，请转发至本群请求用户更正";
-            app(Xbot::class)->send($message, $to);
+            // 取消电话更新 消息，减少师傅信息数量
+            // app(Xbot::class)->send($message, $to);
             
             //分单群
             if(!$customer->deliver_id){

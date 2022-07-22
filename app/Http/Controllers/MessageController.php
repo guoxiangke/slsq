@@ -206,7 +206,7 @@ class MessageController extends Controller
                 $order = Order::create($orderData);
                 $this->cache->flush();
                 // get address or telephone!
-                return $this->sendMessage('支付成功1，创建订单{$order->id} ，发货！');
+                return $this->sendMessage('支付成功，创建订单{$order->id} ，发货！');
             }
                 
             // ✅ 直接转 准确的 单价 金额
@@ -262,7 +262,7 @@ class MessageController extends Controller
                     'status' => 1, //1 已wx支付
                     'price' => $nextprice,
                 ];
-                $this->sendMessage("师傅马上出发1！" . "\n【{$products[$productKey]['name']}】{$nextAmount}桶");
+                $this->sendMessage("师傅马上出发" . "\n【{$products[$productKey]['name']}】{$nextAmount}桶");
                 return $this->createOrder($orderData);
             }else{
                 // 转账金额 不在 所有的价格范围里
@@ -357,7 +357,7 @@ class MessageController extends Controller
                 $productIsVoucher = Str::contains($product->name, ['水票'])?true:false;
                 {
                     $price = $products[$productKey]['price']/100;
-                    $message = "微信直接转账 ¥{$price}，". ($productIsVoucher?"您将获得":"师傅马上出发2！") ."\n【{$products[$productKey]['name']}】" . ($productIsVoucher?"\n购买成功后自动入账、自动抵付":"\n若定多{$product->unit}，请转 {$product->unit}数X{$price}元");
+                    $message = "微信直接转账 ¥{$price}，". ($productIsVoucher?"您将获得":"师傅马上出发！") ."\n【{$products[$productKey]['name']}】" . ($productIsVoucher?"\n购买成功后自动入账、自动抵付":"\n若定多{$product->unit}，请转 {$product->unit}数X{$price}元");
                     if($product->unit == '桶'){
                         $message .= "\n请问要几桶？";
                     }

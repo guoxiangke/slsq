@@ -44,7 +44,7 @@ class TodayOverview extends Command
             return $carry + $price;
         });
 
-        $message .= "\n收款总数：" . $total/100;
+        $message .= "\n收款总数：¥" . $total/100;
         // orders orderByProductId 
         $orders1 = $orders->mapToGroups(function ($item, $key) {
             return [$item['product_id'] => $item];
@@ -72,7 +72,7 @@ class TodayOverview extends Command
             $message .= "\n==================";
             $message .= "\n{$order->product->name}：";
             $message .= "\n数量：{$amount}".($paidByVoucher?"(水票{$paidByVoucher})":'');
-            $message .= "\n金额：{$price}";
+            $message .= "\n金额：¥{$price}";
         }
         // $this->sendMessage($message);
         app(Xbot::class)->send($message, "20388549423@chatroom");
