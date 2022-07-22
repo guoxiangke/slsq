@@ -37,7 +37,7 @@ class MessageController extends Controller
         if(!isset($request['msgid']) || $request['self'] == true)  return response()->json(null);
         
         $wxidOrCurrentRoom = $request['wxid'];
-        $isRoom = Str::endsWith($wxidOrCurrentRoom, '@chatroom')
+        $isRoom = Str::endsWith($wxidOrCurrentRoom, '@chatroom');
         // personal
         $this->wxid = $wxidOrCurrentRoom;
         $this->remark = $request['remark'];
@@ -129,7 +129,7 @@ class MessageController extends Controller
             }            
             return $this->_return();
         }
-        
+
         $this->cache = Cache::tags($this->wxid);
         // 如果是 995, 自由聊天5分钟
         // stop.service.and.chat.as.human
