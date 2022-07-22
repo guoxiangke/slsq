@@ -32,12 +32,12 @@ class MessageController extends Controller
     private $cache;
     private $menu = '';
     public function __invoke(Request $request){
-        Log::error(__LINE__, [$request->all()]);
+        Log::debug(__LINE__, [$request->all()]);
         // 验证消息
         if(!isset($request['msgid']) || $request['self'] == true)  return response()->json(null);
         
         $wxidOrCurrentRoom = $request['wxid'];
-        $isRoom = isset($request['from']);
+        $isRoom = Str::endsWith($wxidOrCurrentRoom, '@chatroom')
         // personal
         $this->wxid = $wxidOrCurrentRoom;
         $this->remark = $request['remark'];
@@ -59,7 +59,7 @@ class MessageController extends Controller
 
         $keyword = $request['content'];
         // 群消息处理 
-        if($isRoom){ //Str::endsWith($this->wxid, '@chatroom')
+        if($isRoom){
             $contents = explode("\n", $keyword);
             if($wxidOrCurrentRoom == '17746965832@chatroom'){
                 if($contents[0] == '[地址更新]'){
