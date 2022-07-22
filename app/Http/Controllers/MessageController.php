@@ -36,6 +36,19 @@ class MessageController extends Controller
         if(!isset($request['msgid']) || $request['self'] == true)  return response()->json(null);
         
         $this->wxid = $request['wxid'];
+
+        // 查找或存储用户
+        $customer = Customer::firstOrCreate(['wxid'=> $this->wxid]); // "wxid":"bluesky_still","remark":"AI天空蔚蓝"
+        $this->customer = $customer;
+
+        // 更新用户的备注
+        // $customer->update(['name'=>$request['remark']]);
+        if($customer->name !== $request['remark']){
+            $customer->name = $request['remark'];
+            // Saving A Single Model Without Events
+            $customer->saveQuietly();
+        }
+        
         $keyword = $request['content'];
         // 群消息处理 
         if(Str::endsWith($this->wxid, '@chatroom')){
@@ -128,17 +141,6 @@ class MessageController extends Controller
         }
 
 
-        // 查找或存储用户
-        $customer = Customer::firstOrCreate(['wxid'=> $this->wxid]); // "wxid":"bluesky_still","remark":"AI天空蔚蓝"
-        $this->customer = $customer;
-
-        // 更新用户的备注
-        // $customer->update(['name'=>$request['remark']]);
-        if($customer->name !== $request['remark']){
-            $customer->name = $request['remark'];
-            // Saving A Single Model Without Events
-            $customer->saveQuietly();
-        }
         
         // 处理 送水工人的 消息
         if($customer->isDeliver()) {
