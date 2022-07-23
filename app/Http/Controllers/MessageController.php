@@ -304,7 +304,9 @@ class MessageController extends Controller
                 $this->cache->forget('wait.telephone');
                 $message = "[抱拳]谢谢，收到";
                 // 把last单子发一遍！
-                if(Order::where(['customer_id' => $customer->id])->first()) $message .= "\n师傅已接单，正在快马加鞭！";
+                if(Order::where(['customer_id' => $customer->id])->first()) {
+                    $message .= "\n师傅已接单，正在快马加鞭！";
+                }
                 return $this->sendMessage($message);
             }else{
                 return $this->sendMessage('❌手机号错误，请重新回复准确手机号码！');
