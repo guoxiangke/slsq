@@ -46,7 +46,6 @@ class Order extends Resource
             BelongsTo::make('customer'),
             BelongsTo::make('product'),
             BelongsTo::make('voucher'),
-            BelongsTo::make('群', 'group', Deliver::class),
             BelongsTo::make('师傅','deliver', Customer::class),
             
             Text::make('price')->rules('required', 'string', 'max:255'),
