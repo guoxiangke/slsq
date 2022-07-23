@@ -91,7 +91,7 @@ class TodayOverview extends Command
             $total = $items->reduce(function ($carry, $order) {
                 return $carry + $order->amount;
             });
-            $message .= "\n今日总计：$total 桶";
+            $message .= "\n总计：$total 桶";
             $message .= "\n--------------------------";
         }
 
