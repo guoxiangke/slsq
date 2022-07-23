@@ -339,8 +339,8 @@ class MessageController extends Controller
                     // 'deliver_id' => $customer->deliver_id,
                     'status' => 1, // 信息整全
                 ];
-                $this->cache->put('order.need.pay', $orderData, 300);
-                return $this->sendMessage("[OK]{$amount}桶水，微信转账".($priceInDB/100)."元\n支付后师傅马上出发！5分钟后失效，需要重新下单支付");
+                $this->cache->put('order.need.pay', $orderData, 180);
+                return $this->sendMessage("[OK]{$amount}桶水，微信转账".($priceInDB/100)."元\n支付后师傅马上出发！3分钟后失效，需要重新下单支付");
             }
 
             // 水票购水
@@ -428,6 +428,7 @@ class MessageController extends Controller
         if($isPaid){
             //一直等地址，直到成功！
             $this->cache->put('wait.address', true);
+            $this->cache->put('order.isPaid', true);
         }else{
             $this->cache->put('wait.address', true, 360);
         }
