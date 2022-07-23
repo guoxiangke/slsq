@@ -90,7 +90,7 @@ class TodayOverview extends Command
                 return $carry + $order->amount;
             });
             $message .= "\n今日总计：$total 桶";
-            $message .= "\n------------------";
+            $message .= "\n--------------------------";
         }
 
         app(Xbot::class)->send($message, "20388549423@chatroom");
