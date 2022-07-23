@@ -302,8 +302,10 @@ class MessageController extends Controller
             if(Str::length($telephone)==11 && Str::startsWith($telephone,[1])){
                 $customer->update(['telephone'=>$telephone]);
                 $this->cache->forget('wait.telephone');
-                return $this->sendMessage("[抱拳]谢谢，收到");
-                // 把上一个单子发一遍！告诉师傅已出发！
+                $message = "[抱拳]谢谢，收到";
+                // 把last单子发一遍！
+                if(Order::where(['customer_id' => $customer->id])->first()) $message .= "\n师傅已接单，正在快马加鞭！";
+                return $this->sendMessage($message);
             }else{
                 return $this->sendMessage('❌手机号错误，请重新回复准确手机号码！');
             }
@@ -411,7 +413,7 @@ class MessageController extends Controller
         }
     }
 
-    protected function getTelephone($msg = '请问您的手机号是?', $wxid=null){
+    protected function getTelephone($msg = '请留下手机号', $wxid=null){
         $this->cache->flush();
         $this->cache->put('wait.telephone', true, 360);
         return $this->sendMessage($msg, $wxid);
