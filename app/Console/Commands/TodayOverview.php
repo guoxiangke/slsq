@@ -33,7 +33,9 @@ class TodayOverview extends Command
     {
         // if($keyword == '今日统计'){
         $orders = Order::whereDate('created_at', Carbon::today())->get();
-        $message = "订单总数：" . $orders->count();
+        $message .= "\n====-今日统计-====";
+        $message = "截止时间：".now();
+        $message .= "\n订单总数：" . $orders->count();
         $total = $orders->reduce(function ($carry, $order) {
             $productIsVoucher = Str::contains($order->product->name, ['水票'])?true:false;
             if($productIsVoucher){
