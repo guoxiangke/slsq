@@ -34,7 +34,6 @@ class TodayOverview extends Command
         // if($keyword == '今日统计'){
         $orders = Order::whereDate('created_at', Carbon::today())->get();
         $message = "====-今日统计-====";
-        $message .= "\n截止时间：".now();
         $message .= "\n订单总数：" . $orders->count();
         $total = $orders->reduce(function ($carry, $order) {
             $productIsVoucher = Str::contains($order->product->name, ['水票'])?true:false;
@@ -72,14 +71,15 @@ class TodayOverview extends Command
             $price = $price/100;
 
             $message .= "\n==================";
-            $message .= "\n{$order->product->name}：";
-            $message .= "\n数量：{$amount}".($paidByVoucher?"(含{$paidByVoucher})张水票":'');
+            $message .= "\n{$order->product->name}：{$amount}".($paidByVoucher?"(含{$paidByVoucher})张水票":'');
             $message .= "\n金额：¥{$price}";
         }
+        $message .= "\n==================";
+        $message .= "\n截止时间：".now();
         // $this->sendMessage($message);
-        // app(Xbot::class)->send($message, "20388549423@chatroom");
+        app(Xbot::class)->send($message, "20388549423@chatroom");
 
-        $message .= "\n====-按师傅统计-====";
+        $message = "====-按师傅统计-====";
         // 按师傅统计
         $orders = Order::whereDate('created_at', Carbon::today())
             ->where('status', 4) // 4 配送完毕，收到配送人员反馈
@@ -87,13 +87,24 @@ class TodayOverview extends Command
             ->groupBy('deliver_id');
         foreach ($orders as $deliverId => $items) {
             $deliver = $items->first()->deliver->name;
-            $message .= "\n$deliver:";
             $total = $items->reduce(function ($carry, $order) {
                 return $carry + $order->amount;
             });
-            $message .= "\n总计：$total 桶";
+            $message .= "\n{$deliver}：{$total}";
+
+            $orders1 = $items->mapToGroups(function ($item, $key) {
+                return [$item['product_id'] => $item];
+            });
+            foreach($orders1 as $productId => $orders2){
+                $amount = 0;
+                foreach ($orders2 as $key => $order) {
+                    $amount += $order->amount;
+                }
+                $message .= "\n{$order->product->name}：{$amount}";
+            }
             $message .= "\n--------------------------";
         }
+        $message .= "\n截止时间：".now();
 
         app(Xbot::class)->send($message, "20388549423@chatroom");
 
