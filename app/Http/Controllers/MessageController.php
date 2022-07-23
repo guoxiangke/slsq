@@ -17,22 +17,12 @@ use App\Services\Xbot;
 
 class MessageController extends Controller
 {
-    // - 定一桶水
-    //     - 定N桶水
-    // - 支付1桶水
-    //     - 支付N桶水
-    
-    // order.need.pay
-    // order.need.amount
-    // order.need.product
-
-    // {"msgid":104730,"type":"text","wxid":"bluesky_still","remark":"AI天空蔚蓝","seat_user_id":1,"self":false,"content":"good"}
     private $wxid = '';
     private $remark = '';
     private $cache;
     private $menu = '';
+    private $isPaid = false;
     public function __invoke(Request $request){
-        Log::debug(__LINE__, [$request->all()]);
         // 验证消息
         if(!isset($request['msgid']) || $request['self'] == true)  return response()->json(null);
         
@@ -180,12 +170,10 @@ class MessageController extends Controller
             // 有的产品不展示 && 如果有水票了，不显示水票menu
             if($product->show){
                 if($hasVouchers && Str::contains($product->name, ['水票'])){
-
+                    // do nothing!
                 }else{
                     $menu .="\n【{$productKey}】{$name} ¥" . $price/100 . '元';        
                 }
-                
-                
             }
         }
         $menu = "您好，我是订水智能客服小泉[微笑]\n请回复编号订水[ThumbsUp]" . $menu;
@@ -210,7 +198,6 @@ class MessageController extends Controller
             $tmp = explode('￥', $request['content']);
             $tmp = explode(':', $tmp[1]);
             $paidMoney = (int)$tmp[0]*100; //8.0 => 800
-            Log::error(__LINE__, [$paidMoney]);
             // ✅ 缓存内容中有订单数据，且支付金额一致！
             $orderData = $this->cache->get('order.need.pay');
             if($orderData && $orderData['price'] * 100 == $paidMoney){
@@ -258,11 +245,8 @@ class MessageController extends Controller
                         'status' => 1, //1 已wx支付
                     ];
                     $this->sendMessage("{$tickets}张水票已入您的电子账户，编号No:{$voucher->id}\n回复【9391】即可水票订水！");
+                    $this->isPaid = true;
                     return $this->createOrder($orderData);
-                }else{
-                    // 购买桶水
-                    // 分配工人
-                    // 工人马上出发 ，订单ID：（2）207011
                 }
 
                 // 创建订单
@@ -275,6 +259,7 @@ class MessageController extends Controller
                     'price' => $nextprice,
                 ];
                 $this->sendMessage("【{$products[$productKey]['name']}】{$nextAmount}桶"."\n马上送到！");
+                $this->isPaid = true;
                 return $this->createOrder($orderData);
             }else{
                 // 转账金额 不在 所有的价格范围里
@@ -303,9 +288,16 @@ class MessageController extends Controller
                 $customer->update(['telephone'=>$telephone]);
                 $this->cache->forget('wait.telephone');
                 $message = "[抱拳]谢谢，收到";
+
                 // 把last单子发一遍！
-                if(Order::where(['customer_id' => $customer->id])->first()) {
-                    $message .= "\n师傅已接单，正在快马加鞭！";
+                $order = Order::where(['customer_id' => $customer->id])->first();
+                if($order) {
+                    $productIsVoucher = Str::contains($order->product->name, ['水票'])?true:false;
+                    if($productIsVoucher){
+                        $message .= "\n使用水票订水，请回复【9391】！"; 
+                    }else{
+                        $message .= "\n师傅已接单，正在快马加鞭！";    
+                    }
                 }
                 return $this->sendMessage($message);
             }else{
@@ -335,7 +327,8 @@ class MessageController extends Controller
             $product = Product::find($productId);
 
             $amount = $keyword;
-            if($needAmount && is_numeric($amount) && $amount>0){  //todo
+            // 一个师傅1次最多装几桶水？ 18
+            if($needAmount && is_numeric($amount) && $amount>0 && $amount<=18){
                 $priceInDB = $products[$productKey]['price'] * $amount; //8900x3
                 $orderData = [
                     'customer_id' => $customer->id,
@@ -347,7 +340,7 @@ class MessageController extends Controller
                     'status' => 1, // 信息整全
                 ];
                 $this->cache->put('order.need.pay', $orderData, 300);
-                return $this->sendMessage("[OK]{$amount}桶水，微信转账".($priceInDB/100)."元\n，师傅马上送到！5分钟后失效，需要重新下单");
+                return $this->sendMessage("[OK]{$amount}桶水，微信转账".($priceInDB/100)."元\n支付后师傅马上出发！5分钟后失效，需要重新下单支付");
             }
 
             // 水票购水
@@ -375,7 +368,7 @@ class MessageController extends Controller
                 {
                     $price = $products[$productKey]['price']/100;
                     $message = "微信转账 ¥{$price}，". ($productIsVoucher?"您将获得":"师傅马上出发！") ."\n【{$products[$productKey]['name']}】" . ($productIsVoucher?"\n购买成功后自动入账、自动抵付":"\n若定多{$product->unit}，请转¥{$product->unit}数X{$price}元");
-                    $this->cache->put('order.need.amount', true, 60);
+                    if(!$productIsVoucher) $this->cache->put('order.need.amount', true, 60);
                     return $this->sendMessage($message);
                 }
             }
@@ -398,6 +391,9 @@ class MessageController extends Controller
     {
         Order::create($data);
         $this->cache->flush();
+        if($this->isPaid == true){
+            $this->cache->put('order.isPaid', true);//如果支付成功后，没有提供地址电话，则一直，等待地址和电话
+        }
         $this->getAddressOrTelephone();
     }
 
@@ -416,14 +412,25 @@ class MessageController extends Controller
     }
 
     protected function getTelephone($msg = '请留下手机号', $wxid=null){
+        $isPaid =  $this->cache->get('order.isPaid');
         $this->cache->flush();
-        $this->cache->put('wait.telephone', true, 360);
+        if($isPaid){
+            $this->cache->put('wait.telephone', true); //一直等电话，直到成功！
+        }else{
+            $this->cache->put('wait.telephone', true, 360);
+        }
         return $this->sendMessage($msg, $wxid);
     }
 
     protected function getAddress($msg = "请留下送水地址", $wxid=null){
+        $isPaid =  $this->cache->get('order.isPaid');
         $this->cache->flush();
-        $this->cache->put('wait.address', true, 360);
+        if($isPaid){
+            //一直等地址，直到成功！
+            $this->cache->put('wait.address', true);
+        }else{
+            $this->cache->put('wait.address', true, 360);
+        }
         return $this->sendMessage($msg, $wxid);
     }
 
