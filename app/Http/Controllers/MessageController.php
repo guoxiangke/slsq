@@ -153,7 +153,7 @@ class MessageController extends Controller
         
         // 处理 送水工人的 消息
         if($customer->isDeliver()) {
-            return $this->_return();
+            // return $this->_return();
         }
 
         // 上下班 时间处理
