@@ -75,8 +75,9 @@ class TodayOverview extends Command
             $message .= "\n金额：¥{$price}";
         }
         // $this->sendMessage($message);
-        app(Xbot::class)->send($message, "20388549423@chatroom");
+        // app(Xbot::class)->send($message, "20388549423@chatroom");
 
+        $message .= "\n====---按师傅统计---====";
         // 按师傅统计
         $orders = Order::whereDate('created_at', Carbon::today())
             ->where('status', 4) // 4 配送完毕，收到配送人员反馈
@@ -84,12 +85,14 @@ class TodayOverview extends Command
             ->groupBy('deliver_id');
         foreach ($orders as $deliverId => $items) {
             $deliver = $items->first()->deliver->name;
-            $message = "$deliver:";
+            $message .= "\n------------------";
+            $message .= "\n$deliver:";
             $total = $items->reduce(function ($carry, $order) {
                 return $carry + $order->amount;
             });
             $message .= "\n今日总计：$total 桶";
         }
+        
         app(Xbot::class)->send($message, "20388549423@chatroom");
 
         return 0;
