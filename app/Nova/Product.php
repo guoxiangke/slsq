@@ -44,7 +44,7 @@ class Product extends Resource
         return [
             ID::make(__('ID'), 'id')->sortable(),
             Text::make('Name')->rules('required', 'string', 'max:255'),
-            Text::make('Price')->rules('required', 'digits_between:3,4'), //8000~10500
+            Text::make('Price')->rules('required', 'digits_between:3,5'), //8000~10500
             Text::make('Amount')->rules('required', 'string', 'max:255'),
             Text::make('Unit')->rules('required', 'string', 'max:255'),
             Boolean::make('Show'),
