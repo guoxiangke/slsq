@@ -29,7 +29,7 @@ class OrderObserver
      */
     public function updated(Order $order)
     {
-        if($order->wasChanged('deliver_id')) $this->sendMessage($order);
+        if($order->wasChanged('deliver_id')&&$order->status!=4) $this->sendMessage($order);
     }
 
     private function sendMessage(Order $order)
