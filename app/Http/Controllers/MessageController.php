@@ -23,7 +23,6 @@ class MessageController extends Controller
     private $menu = '';
     private $isPaid = false;
     public function __invoke(Request $request){
-        Log::error(__LINE__,[$request->all()]);
         // 验证消息
         if(!isset($request['msgid']) || $request['self'] == true)  return response()->json(null);
         
@@ -38,7 +37,6 @@ class MessageController extends Controller
              $this->remark = $request['from_remark'];
         }
 
-        Log::error(__LINE__,[$this->remark,'$this->remark']);
         // 查找或存储用户
         $customer = Customer::firstOrCreate(['wxid'=> $this->wxid]); // "wxid":"bluesky_still","remark":"AI天空蔚蓝"
         $this->customer = $customer;
@@ -70,13 +68,12 @@ class MessageController extends Controller
             }
             if($wxidOrCurrentRoom == '21182221243@chatroom'){
                 if($contents[0] == '[客户认领]'){
-                    // 厂～1～小懂～下车站
-                    Log::error(__LINE__,[$this->remark,'$this->remark'], Str::startsWith($this->remark, '厂～'));
-                    if(!Str::startsWith($this->remark, '厂～')){
-                        return $this->sendMessage("认领师傅备注不正确！应为：\n厂～1～xxx\n厂～2～xxx", $wxidOrCurrentRoom);
-                        // 请备注好师傅后，让师傅发1～2条消息给 机器人
+                    // 厂~1~小懂~下车站
+                    if(!Str::startsWith($this->remark, '厂~')){
+                        return $this->sendMessage("认领师傅备注不正确！应为：\n厂~1~xxx\n厂~2~xxx", $wxidOrCurrentRoom);
+                        // 请备注好师傅后，让师傅发1~2条消息给 机器人
                     }
-                    $fromRemark = explode("～", $this->remark);// 厂～1～xxx
+                    $fromRemark = explode("~", $this->remark);// 厂~1~xxx
                     $deliverId = $fromRemark[1];// 1~4群
                     // $deliverId = 2;
 
@@ -108,7 +105,7 @@ class MessageController extends Controller
 
             // 1~4群，订单跟踪
             if($contents[0] == '[订单跟踪]'){
-                if(Str::startsWith($this->remark,'厂～')){
+                if(Str::startsWith($this->remark,'厂~')){
                     $customer = Customer::where(['wxid'=> $request['from']])->first();
                     $secondLine = explode(":", $contents[1]); //产品名字:1个:1
                     $orderId = $secondLine[2];
@@ -118,7 +115,7 @@ class MessageController extends Controller
                     $order->saveQuietly(); // 不要OrderObserver
                     $this->sendMessage("[抱拳]辛苦了", $wxidOrCurrentRoom);
                 }else{
-                    return $this->sendMessage("认领师傅备注不正确！应为：\n厂～1～xxx\n厂～2～xxx", $wxidOrCurrentRoom);
+                    return $this->sendMessage("认领师傅备注不正确！应为：\n厂~1~xxx\n厂~2~xxx", $wxidOrCurrentRoom);
                 }
             }            
             return $this->_return();
