@@ -113,7 +113,7 @@ class MessageController extends Controller
                     $order->deliver_id = $customer->id;
                     $order->status = 4; //4 配送完毕，收到配送人员反馈
                     $order->saveQuietly(); // 不要OrderObserver
-                    $this->sendMessage("[抱拳]谢谢，师傅辛苦了", $wxidOrCurrentRoom);
+                    $this->sendMessage("[订单完成]\n订单ID：{$orderId}\n{$contents[3]}\n谢谢师傅，辛苦了[抱拳][ThumbsUp]", $wxidOrCurrentRoom);
                 }else{
                     return $this->sendMessage("认领师傅备注不正确！应为：\n厂~1~xxx\n厂~2~xxx", $wxidOrCurrentRoom);
                 }
