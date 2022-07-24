@@ -23,6 +23,7 @@ class MessageController extends Controller
     private $menu = '';
     private $isPaid = false;
     public function __invoke(Request $request){
+        Log::error(__LINE__,[$request->all()]);
         // 验证消息
         if(!isset($request['msgid']) || $request['self'] == true)  return response()->json(null);
         
