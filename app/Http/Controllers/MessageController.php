@@ -29,6 +29,7 @@ class MessageController extends Controller
         
         $wxidOrCurrentRoom = $request['wxid'];
         $isRoom = Str::endsWith($wxidOrCurrentRoom, '@chatroom');
+        Log::error(__LINE__,[$isRoom,'$isRoom']);
         // personal
         $this->wxid = $wxidOrCurrentRoom;
         $this->remark = $request['remark'];
@@ -37,6 +38,7 @@ class MessageController extends Controller
              $this->remark = $request['from_remark'];
         }
 
+        Log::error(__LINE__,[$this->remark,'$this->remark']);
         // 查找或存储用户
         $customer = Customer::firstOrCreate(['wxid'=> $this->wxid]); // "wxid":"bluesky_still","remark":"AI天空蔚蓝"
         $this->customer = $customer;
@@ -69,6 +71,7 @@ class MessageController extends Controller
             if($wxidOrCurrentRoom == '21182221243@chatroom'){
                 if($contents[0] == '[客户认领]'){
                     // 厂～1～小懂～下车站
+                    Log::error(__LINE__,[$this->remark,'$this->remark'], Str::startsWith($this->remark, '厂～'));
                     if(!Str::startsWith($this->remark, '厂～')){
                         return $this->sendMessage("认领师傅备注不正确！应为：\n厂～1～xxx\n厂～2～xxx", $wxidOrCurrentRoom);
                         // 请备注好师傅后，让师傅发1～2条消息给 机器人
