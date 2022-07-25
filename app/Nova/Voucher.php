@@ -46,7 +46,7 @@ class Voucher extends Resource
             BelongsTo::make('customer'),
             Text::make('amount')->rules('required', 'string', 'max:255'),
             Text::make('left')->rules('required', 'string', 'max:255'),
-            Text::make('price')->rules('digits:11'),
+            Text::make('price')->rules('required'),
         ];
     }
 
