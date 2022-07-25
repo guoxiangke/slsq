@@ -35,5 +35,10 @@ return [
         'endpoint' => env('XBOT_ENDPOINT'),
         'token' => env('XBOT_TOKEN'),
     ],
+    
+    'tencentcloud' => [
+        'secretId' => env('TENCENT_SECRET_ID'),
+        'secretKey' => env('TENCENT_SECRET_KEY'),
+    ],
 
 ];
