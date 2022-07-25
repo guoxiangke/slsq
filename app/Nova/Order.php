@@ -45,12 +45,12 @@ class Order extends Resource
             ID::make(__('ID'), 'id')->sortable(),
             BelongsTo::make('customer'),
             BelongsTo::make('product'),
-            BelongsTo::make('voucher'),
+            BelongsTo::make('voucher')->nullable(),
             BelongsTo::make('师傅','deliver', Customer::class),
             
             Text::make('price')->rules('required', 'string', 'max:255'),
             Text::make('amount')->rules('required', 'string', 'max:255'),
-            Text::make('status')->rules('digits:11'),
+            Text::make('status')->rules('digits:1'),
         ];
     }
 
