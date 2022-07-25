@@ -12,7 +12,7 @@ use App\Models\Product;
 use App\Models\Order;
 use App\Models\Voucher;
 use App\Services\Xbot;
-use App\Services\Irc;
+use App\Services\Icr;
 
 
 
@@ -135,7 +135,7 @@ class MessageController extends Controller
                 return $this->sendMessage('现在暂时退出订水系统，如需订水，请5分钟再试，如有任何问题，请和我留言，稍后回复您，谢谢！');
             }
 
-            $res = app(Irc::class)->run($keyword);
+            $res = app(Icr::class)->run($keyword);
             if($res) {
                 return $this->sendMessage($res->Reply);
             }
@@ -410,8 +410,8 @@ class MessageController extends Controller
                if(Str::contains($keyword, ['纸质水票', '能'])){
                     return $this->sendMessage("不好意思，暂时不支持纸质水票下单，请使用传统方式下单，谢谢您的理解");
                }
-                // 如果用户收到3次菜单了，不再发送菜单，随意聊天
-                if($this->cache->get('menu.count')>2){
+                // 如果用户收到2次菜单了，不再发送菜单，随意聊天
+                if($this->cache->get('menu.count')>1){
                     return $this->sendMessage("对不起，小泉还在学习中，请按菜单指示操作定水\n您也可以回复【讲个笑话】或【石岭天气】");
                 }else{
                     $this->cache->increment('menu.count');
