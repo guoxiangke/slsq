@@ -412,7 +412,7 @@ class MessageController extends Controller
                }
                 // 如果用户收到2次菜单了，不再发送菜单，随意聊天
                 if($this->cache->get('menu.count')>1){
-                    return $this->sendMessage("对不起，小泉还在学习中，请按菜单指示操作定水\n您也可以回复【讲个笑话】或【石岭天气】");
+                    return $this->sendMessage("对不起，小泉还在学习中[抱拳]\n请按菜单指示操作定水[ThumbsUp]\n回复【讲个笑话】或【石岭天气】试试看吧");
                 }else{
                     $this->cache->increment('menu.count');
                     return $this->sendMessage($menu);
