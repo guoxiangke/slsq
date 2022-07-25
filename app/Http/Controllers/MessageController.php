@@ -198,11 +198,12 @@ class MessageController extends Controller
         if($hasVouchers) {
             // 水票Left: 多个电子水票账户！
             foreach ($vouchers as $voucher) {
-                $menu .="\n水票账户{$voucher->id}剩余{$voucher->left}张，回复【9391】可自动抵付";
+                $menu .="\n水票账户No.{$voucher->id}剩余：{$voucher->left}张，回复【9391】可自动抵付[Peace]";
             }
             $voucher = $vouchers->first(); //后面使用第一个账户
+        }else{
+            $menu .="\n极速订水？微信支付对应金额即可[呲牙]";
         }
-        $menu .="\n极速订水？微信支付对应金额即可[呲牙]";
         ////////////////////////////Menu//////////////////////////////
         
 
@@ -369,7 +370,7 @@ class MessageController extends Controller
             if($voucher && $productKey==9391){
                 $left = --$voucher->left;
                 $voucher->update(['left' => $left]);//1桶 默认
-                $message = "您的水票账户No:{$voucher->id}剩余{$left}张，派单已发送师傅, 马上出发配送！";
+                $message = "您的水票账户No.{$voucher->id}剩余{$left}张，派单已发送师傅, 马上出发配送！";
                 $orderData = [
                     'customer_id' => $customer->id,
                     'product_id' => 1, //product_id: "9391",

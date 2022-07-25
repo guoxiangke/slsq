@@ -26,7 +26,9 @@ class OrderObserver
                 'left' => 1,
                 'price' => 0,
             ]);
-            $this->sendMessage("恭喜您，完成首单买一送一活动\n已赠送{$tickets}张电子水票到您的账户，编号No:{$voucher->id}\n回复【9391】即可水票订水！\n请继续完善送水地址电话");
+            $message = "恭喜您，完成首单买一送一活动\n已赠送{$tickets}张电子水票到您的账户，编号No:{$voucher->id}\n回复【9391】即可水票订水！\n请继续完善送水地址电话";
+            $to = $order->customer->deliver->wxid; //分群
+            return app(Xbot::class)->send($message, $to);
         }
         if(!$order->customer->deliver) return; //首单无地址
         $this->sendMessage($order);
