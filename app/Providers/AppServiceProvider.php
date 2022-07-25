@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Observers\CustomerObserver;
 use App\Observers\OrderObserver;
 use App\Services\Xbot;
+use App\Services\Irc;
 
 
 class AppServiceProvider extends ServiceProvider
@@ -21,6 +22,9 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->singleton(Xbot::class, function() {
             return new Xbot();
+        });
+        $this->app->singleton(Irc::class, function() {
+            return new Irc();
         });
     }
 

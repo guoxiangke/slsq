@@ -12,6 +12,7 @@ use App\Models\Product;
 use App\Models\Order;
 use App\Models\Voucher;
 use App\Services\Xbot;
+use App\Services\Irc;
 
 
 
@@ -20,7 +21,6 @@ class MessageController extends Controller
     private $wxid = '';
     private $remark = '';
     private $cache;
-    private $menu = '';
     private $isPaid = false;
     public function __invoke(Request $request){
         // 验证消息
@@ -124,10 +124,24 @@ class MessageController extends Controller
         $this->cache = Cache::tags($this->wxid);
         // 如果是 995, 自由聊天5分钟
         // stop.service.and.chat.as.human
-        if($keyword == '995'){
-            $this->cache->put('stop.service', true, 300);
-            return $this->sendMessage('现在暂时退出订水系统，如需订水，请5分钟再试，如有任何问题，请和我留言，稍后回复您，谢谢！');
+        // 【讲个笑话】或【石岭天气】
+        if(Str::contains($keyword, [
+            '995',
+            '讲个笑话',
+            '石岭天气',
+        ])){
+            if($keyword == '995'){
+                $this->cache->put('stop.service', true, 300);
+                return $this->sendMessage('现在暂时退出订水系统，如需订水，请5分钟再试，如有任何问题，请和我留言，稍后回复您，谢谢！');
+            }
+
+            $res = app(Icr::class)->run($keyword);
+            if($res) {
+                return $this->sendMessage($res->Reply);
+            }
+
         }
+        
         if($keyword == '999'){
             // 转发消息 到 客服群！
             $this->sendMessage('客户发送999请求退款！', "20479347997@chatroom");
@@ -140,7 +154,10 @@ class MessageController extends Controller
             return $this->_return();
         }
 
-
+        // 好友拉黑信息处理：不然死循环
+        if(Str::contains($keyword, '请先发送朋友验证请求')){
+            return $this->_return();
+        }
         
         // 处理 送水工人的 消息
         if($customer->isDeliver()) {
@@ -152,7 +169,7 @@ class MessageController extends Controller
         $on = option('on', 8);
         $off = option('off', 21);
         if($now >= $off || $now <= $on){
-            return $this->sendMessage("不好意思，上班时间：{$on}-{$off}");
+            $this->sendMessage("请注意：\n师傅上班时间：{$on}-{$off}\n非营业期间可正常下单，开工后优先派送[抱拳]");
         }
 
         ////////////////////////////Menu//////////////////////////////
@@ -187,7 +204,6 @@ class MessageController extends Controller
             $voucher = $vouchers->first(); //后面使用第一个账户
         }
         $menu .="\n极速订水？微信支付对应金额即可[呲牙]";
-        $this->menu = $menu;
         ////////////////////////////Menu//////////////////////////////
         
 
@@ -259,7 +275,13 @@ class MessageController extends Controller
                     'status' => 1, //1 已wx支付
                     'price' => $nextprice,
                 ];
-                $this->sendMessage("【{$products[$productKey]['name']}】{$nextAmount}桶"."\n马上送到！");
+                $message = "【{$products[$productKey]['name']}】{$nextAmount}桶";
+                if($now >= $off || $now <= $on){
+                    $message .= "不好意思，师傅上班时间：{$on}-{$off}\n开工后优先派送🏃请耐心等待[抱拳]";
+                }else{
+                    $message .= "\n马上送到🏃";
+                }
+                $this->sendMessage($message);
                 $this->isPaid = true;
                 return $this->createOrder($orderData);
             }else{
@@ -376,9 +398,27 @@ class MessageController extends Controller
         }else{
             $is_cache_request_telephone = $this->cache->get('wait.telephone');
             if(!$is_cache_request_telephone){
-                return $this->sendMessage($this->menu);
+                // 智能AI机器人
+                    // 是普通的桶吗
+                    // 正常桶吗？
+                    // 桶多大的？
+                    // 多大的桶？
+                    // 纸质水票能不能用？
+               if(Str::contains($keyword, ['桶吗', '多大', '多少升', '几升', '饮水机能'])){
+                    return $this->sendMessage("我们使用的是标准18.9升的桶，兼容市面标准饮水机，您可以放心下单订购。");
+               }
+               if(Str::contains($keyword, ['纸质水票', '能'])){
+                    return $this->sendMessage("不好意思，暂时不支持纸质水票下单，请使用传统方式下单，谢谢您的理解");
+               }
+                // 如果用户收到3次菜单了，不再发送菜单，随意聊天
+                if($this->cache->get('menu.count')>2){
+                    return $this->sendMessage("对不起，小泉还在学习中，请按菜单指示操作定水\n您也可以回复【讲个笑话】或【石岭天气】");
+                }else{
+                    $this->cache->increment('menu.count');
+                    return $this->sendMessage($menu);
+                }
+                
             }
-            // $this->sendMessage($menu);
         }
 
         $this->getAddressOrTelephone();
@@ -402,7 +442,6 @@ class MessageController extends Controller
     {
         // 请求存储地址与手机号
         if(!$this->customer->addressIsOk()){
-            // $this->sendMessage($this->menu);
             return $this->getAddress();
             // 2.获取地址后，存储
         }
