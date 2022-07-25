@@ -198,7 +198,7 @@ class MessageController extends Controller
         if($hasVouchers) {
             // 水票Left: 多个电子水票账户！
             foreach ($vouchers as $voucher) {
-                $menu .="\n水票剩余{$voucher->left}张，回复【9391】可自动抵付";
+                $menu .="\n水票账户{$voucher->id}剩余{$voucher->left}张，回复【9391】可自动抵付";
             }
             $voucher = $vouchers->first(); //后面使用第一个账户
         }
