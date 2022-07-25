@@ -28,7 +28,6 @@ class MessageController extends Controller
         
         $wxidOrCurrentRoom = $request['wxid'];
         $isRoom = Str::endsWith($wxidOrCurrentRoom, '@chatroom');
-        Log::error(__LINE__,[$isRoom,'$isRoom']);
         // personal
         $this->wxid = $wxidOrCurrentRoom;
         $this->remark = $request['remark'];
@@ -139,7 +138,7 @@ class MessageController extends Controller
             if($res) {
                 return $this->sendMessage($res->Reply);
             }
-
+            
         }
         
         if($keyword == '999'){
