@@ -168,7 +168,9 @@ class MessageController extends Controller
         $on = option('on', 8);
         $off = option('off', 21);
         if($now >= $off || $now <= $on){
-            $this->sendMessage("请注意：\n师傅上班时间：{$on}-{$off}\n非营业期间可正常下单，开工后优先派送[抱拳]");
+            if($this->cache->get('menu.count')==1){ //出现1次！
+                $this->sendMessage("请注意：\n师傅上班时间：{$on}-{$off}\n非营业期间可正常下单，开工后优先派送[抱拳]");
+            }
         }
 
         ////////////////////////////Menu//////////////////////////////
@@ -359,7 +361,7 @@ class MessageController extends Controller
                     'voucher_id' => null, //没有水票
                     'price' => $priceInDB, //总价格
                     'amount' => $amount, //几桶
-                    // 'deliver_id' => $customer->deliver_id,
+                    'deliver_id' => $customer->deliver_id,
                     'status' => 1, // 信息整全
                 ];
                 $this->cache->put('order.need.pay', $orderData, 180);
@@ -376,7 +378,7 @@ class MessageController extends Controller
                     'product_id' => 1, //product_id: "9391",
                     'amount' => 1, //几桶
                     'voucher_id' => $voucher->id,
-                    // 'deliver_id' => $customer->deliver_id,
+                    'deliver_id' => $customer->deliver_id,
                     'status' => 1, // 信息整全
                 ];
 
