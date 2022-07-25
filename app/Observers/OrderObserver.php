@@ -30,7 +30,9 @@ class OrderObserver
             $to = $order->customer->wxid; //分群
             return app(Xbot::class)->send($message, $to);
         }
+        Log::error(__LINE__,[$order]);
         if(!$order->customer->deliver) return; //首单无地址
+        Log::error(__LINE__,[$order->customer->deliver]);
         $this->sendMessage($order);
     }
     /**
