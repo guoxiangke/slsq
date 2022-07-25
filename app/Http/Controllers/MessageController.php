@@ -134,11 +134,11 @@ class MessageController extends Controller
                 return $this->sendMessage('现在暂时退出订水系统，如需订水，请5分钟再试，如有任何问题，请和我留言，稍后回复您，谢谢！');
             }
 
+            $this->cache->flush();
             $res = app(Icr::class)->run($keyword);
             if($res) {
                 return $this->sendMessage($res->Reply);
             }
-            
         }
         
         if($keyword == '999'){
