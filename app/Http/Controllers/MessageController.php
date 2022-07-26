@@ -212,7 +212,7 @@ class MessageController extends Controller
                 }
             }
         }
-        $menu = "您好，我是订水智能客服小泉[微笑]\n请回复编号订水[强]" . $menu;
+        $menu = "您好，我是订水智能客服小泉[调皮]\n请回复编号订水[强]" . $menu;
         $voucher = null;
         if($hasVouchers) {
             // 水票Left: 多个电子水票账户！
@@ -435,11 +435,11 @@ class MessageController extends Controller
                if(Str::contains($keyword, ['桶吗', '多大', '多少升', '几升', '饮水机能'])){
                     return $this->sendMessage("我们使用的是标准18.9升的桶，兼容市面标准饮水机，您可以放心下单订购。");
                }
-               if(Str::contains($keyword, ['纸质水票', '能'])){
+               if(Str::contains($keyword, ['纸', '纸质', '纸质水票', '能'])){
                     return $this->sendMessage("不好意思，暂时不支持纸质水票下单，请使用传统方式下单，谢谢您的理解");
                }
-                // 如果用户收到2次菜单了，不再发送菜单，随意聊天
-                if($this->cache->get('menu.count')>1){
+                // 如果用户收到1次菜单了，不再发送菜单，随意聊天
+                if($this->cache->get('menu.count')>0){
                     $this->cache->forget('menu.count'); // 交替出现
                     return $this->sendMessage("对不起，小泉还在学习中[抱拳]\n请按菜单指示操作定水[握手]\n回复【讲个笑话】或【石岭天气】试试[强]");
                 }else{
