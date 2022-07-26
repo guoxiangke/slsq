@@ -33,7 +33,7 @@ class OrderObserver
         }
         Log::error(__LINE__,[$order]);
         if(!$order->customer->deliver) return; //首单无地址
-        Log::error(__LINE__,[$order->customer->deliver]);
+        Log::error(__LINE__,[$order->customer->deliver,$order->customer->deliver->wxid]);
         $this->sendMessage($order);
     }
     /**
