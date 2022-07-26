@@ -4,6 +4,7 @@ namespace App\Observers;
 
 use App\Models\Order;
 use App\Models\Voucher;
+use App\Models\Deliver;
 
 use App\Services\Xbot;
 use Illuminate\Support\Str;
@@ -54,8 +55,8 @@ class OrderObserver
         // 购买水票
         $productIsVoucher = Str::contains($order->product->name, ['水票'])?true:false;
         
-        $voucher = Voucher::where('customer_id', $order->customer_id)->where('left', ">=" , 0)->first();
-        $payInfo = $order->price?($order->price/100 * ($productIsVoucher?1:$order->amount)).'元':'水票:剩余:'.$voucher->left;
+        $voucher = Voucher::where('customer_id', $order->customer_id)->where('left', ">" , 0)->first();
+        $payInfo = $order->price?($order->price/100 * ($productIsVoucher?1:$order->amount)).'元':'水票:剩余:'.$voucher->left??0;
         $message .= "\n支付:" . $payInfo;
         $message .= "\n客户:" . $order->customer->name. ':'. $order->customer_id ;
         $message .= "\n电话:" . $order->customer->telephone;
