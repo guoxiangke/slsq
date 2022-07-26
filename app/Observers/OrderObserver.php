@@ -7,6 +7,7 @@ use App\Models\Voucher;
 
 use App\Services\Xbot;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class OrderObserver
 {
