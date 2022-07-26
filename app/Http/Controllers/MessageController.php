@@ -141,10 +141,21 @@ class MessageController extends Controller
             }
         }
         
-        if($keyword == '999'){
-            // 转发消息 到 客服群！
-            $this->sendMessage('客户发送999请求退款！', "20479347997@chatroom");
-            return $this->sendMessage('我们正在处理您退款请求，一般24小时内到账，谢谢！');
+        switch ($keyword) {
+            case '送一桶':
+            case '来一桶':
+            case '送一桶水':
+            case '来一桶水':
+                $this->sendMessage("如果您是想定18.9升桶装纯净水\n请回复【9391】给我或直接微信转账8元过来\n师傅马上送到[ThumbsUp]");
+                break;
+            case '999':// 转发消息 到 客服群！
+                $this->sendMessage('客户发送999请求退款！', "20479347997@chatroom");
+                $this->sendMessage('我们正在处理您退款请求，一般24小时内到账，谢谢！');
+                break;
+            
+            default:
+                // code...
+                break;
         }
 
         if($this->cache->get('stop.service')){
