@@ -32,9 +32,7 @@ class OrderObserver
             $to = $order->customer->wxid; //分群
             return app(Xbot::class)->send($message, $to);
         }
-        Log::error(__LINE__,[$order]);
         if(!$order->customer->deliver) return; //首单无地址
-        Log::error(__LINE__,[$order->customer->deliver,$order->customer->deliver->wxid]);
         $this->sendMessage($order);
     }
     /**
@@ -65,7 +63,6 @@ class OrderObserver
         $deliverId = $order->customer->deliver->id; //分群
         $deliver = Deliver::find($deliverId);
         $to = $deliver->wxid; // 发到对应的4个群里！
-        Log::error(__LINE__,[$to, $deliver]);
         // sq水票订单
         if($productIsVoucher){
             $to = '20779741807@chatroom';
