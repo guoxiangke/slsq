@@ -152,7 +152,7 @@ class MessageController extends Controller
         $on = option('on', 8);
         $off = option('off', 21);
         if($now >= $off || $now <= $on){
-            if($this->cache->get('menu.count')==1){ //出现1次！
+            if($this->cache->has('menu.count')){ //出现1次！
                 $this->sendMessage("请注意：\n师傅上班时间：{$on}-{$off}\n非营业期间可正常下单，开工后优先派送[抱拳]");
             }
         }
@@ -165,16 +165,16 @@ class MessageController extends Controller
             case '送一桶水':
             case '来一桶水':
                 $this->sendMessage("想定18.9升桶装纯净水[疑问]\n请回复【9391】给我[强]\n或直接微信转账8元过来[勾引]\n师傅马上送到[强]");
-                $this->_return();
+                return $this->_return();
                 break;
             case '999':
-                $this->sendMessage("很抱歉，给您带来不便[难过]\n我们正在处理您的请求，一般24小时内到账，谢谢[抱拳]");
+                $this->sendMessage("很抱歉，给您带来不便[难过]\n我们正在处理您的请求，一般24小时内到账[抱拳]");
                 $message = '[客户请求退款]';
                 $message .= "\n客户:" . $customer->name. ':'. $customer->id;
                 $message .= "\n电话:" . $customer->telephone;
                 $message .= "\n地址:" . $customer->address_detail;
                 $this->sendMessage($message,  $this->groups['refund']);
-                $this->_return();
+                return $this->_return();
                 break;
             
             default:
