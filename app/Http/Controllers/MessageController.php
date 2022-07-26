@@ -22,6 +22,12 @@ class MessageController extends Controller
     private $remark = '';
     private $cache;
     private $isPaid = false;
+    private $groups = [
+        'statistics' => "20388549423@chatroom", // sq对账群 统计群 上下班时间设置
+        'address_update' => '17746965832@chatroom', // 地址更新更新群
+        'customer_owner' => '21182221243@chatroom', // 客户认领群
+        'refund' => '20479347997@chatroom', // 客服退款群
+    ];
     public function __invoke(Request $request){
         // 验证消息
         if(!isset($request['msgid']) || $request['self'] == true)  return response()->json(null);
@@ -51,7 +57,7 @@ class MessageController extends Controller
         // 群消息处理 
         if($isRoom){
             $contents = explode("\n", $keyword);
-            if($wxidOrCurrentRoom == '17746965832@chatroom'){
+            if($wxidOrCurrentRoom == $this->groups['address_update']){
                 if($contents[0] == '[地址更新]'){
                     $secondLine = explode(":", $contents[1]); //客户:AI天空蔚蓝:1
                     $customer = Customer::find($secondLine[2]);
@@ -65,7 +71,7 @@ class MessageController extends Controller
                     $this->getTelephone('不好意思，手机号好像有误', $customer->wxid);
                 }
             }
-            if($wxidOrCurrentRoom == '21182221243@chatroom'){
+            if($wxidOrCurrentRoom == $this->groups['customer_owner']){
                 if($contents[0] == '[客户认领]'){
                     // 厂~1~小懂~下车站
                     if(!Str::startsWith($this->remark, '厂~')){
@@ -79,14 +85,14 @@ class MessageController extends Controller
                     $secondLine = explode(":", $contents[1]); //客户:AI天空蔚蓝:1
                     $customer = Customer::find($secondLine[2]);
                     $customer->update(['deliver_id' => $deliverId]);//1~4
-                    $this->sendMessage("[认领成功]\n{$contents[1]}\n此客户定单将发送到：\n【sq师傅{$deliverId}群】[胜利][ThumbsUp]", $wxidOrCurrentRoom);
+                    $this->sendMessage("[认领成功]\n{$contents[1]}\n此客户定单将发送到：\n【sq师傅{$deliverId}群】[胜利][强]", $wxidOrCurrentRoom);
                     // TODO 认领成功前，不可再次下单！
                     // 把首单发送到指定的群！
                     Order::where('customer_id', $customer->id)->latest()->first()->update(['deliver_id'=>$deliverId]); // 暂时借用 deliver_id 字段
                 }
             }
             // sq对账群 统计群 上下班时间设置
-            if($wxidOrCurrentRoom == '20388549423@chatroom'){
+            if($wxidOrCurrentRoom == $this->groups['statistics']){
                 if($keyword == '今日统计'){
                     return Artisan::call('overview:today');
                 }
@@ -112,7 +118,7 @@ class MessageController extends Controller
                     $order->deliver_id = $customer->id;
                     $order->status = 4; //4 配送完毕，收到配送人员反馈
                     $order->saveQuietly(); // 不要OrderObserver
-                    $this->sendMessage("[订单完成]\n订单ID：{$orderId}\n{$contents[3]}\n谢谢师傅，辛苦了[抱拳][ThumbsUp]", $wxidOrCurrentRoom);
+                    $this->sendMessage("[订单完成]\n订单ID：{$orderId}\n{$contents[3]}\n谢谢师傅，辛苦了[抱拳][强]", $wxidOrCurrentRoom);
                 }else{
                     return $this->sendMessage("认领师傅备注不正确！应为：\n厂~1~xxx\n厂~2~xxx", $wxidOrCurrentRoom);
                 }
@@ -146,10 +152,10 @@ class MessageController extends Controller
             case '来一桶':
             case '送一桶水':
             case '来一桶水':
-                $this->sendMessage("如果您是想定18.9升桶装纯净水\n请回复【9391】给我或直接微信转账8元过来\n师傅马上送到[ThumbsUp]");
+                $this->sendMessage("想定18.9升桶装纯净水[疑问]\n请回复【9391】给我[强]\n或直接微信转账8元过来[勾引]\n师傅马上送到[强]");
                 break;
             case '999':// 转发消息 到 客服群！
-                $this->sendMessage('客户发送999请求退款！', "20479347997@chatroom");
+                $this->sendMessage('客户发送999请求退款！',  $this->groups['refund']);
                 $this->sendMessage('我们正在处理您退款请求，一般24小时内到账，谢谢！');
                 break;
             
@@ -206,7 +212,7 @@ class MessageController extends Controller
                 }
             }
         }
-        $menu = "您好，我是订水智能客服小泉[微笑]\n请回复编号订水[ThumbsUp]" . $menu;
+        $menu = "您好，我是订水智能客服小泉[微笑]\n请回复编号订水[强]" . $menu;
         $voucher = null;
         if($hasVouchers) {
             // 水票Left: 多个电子水票账户！
@@ -234,8 +240,7 @@ class MessageController extends Controller
                 // 支付成功，创建订单，发货！
                 $order = Order::create($orderData);
                 $this->cache->flush();
-                // get address or telephone!
-                return $this->sendMessage('支付成功，创建订单{$order->id} ，发货！');
+                return $this->sendMessage("派单已发给师傅, 马上出发配送🏃\n请耐心等待[抱拳]");
             }
                 
             // ✅ 直接转 准确的 单价 金额
@@ -298,14 +303,24 @@ class MessageController extends Controller
                 $this->isPaid = true;
                 return $this->createOrder($orderData);
             }else{
+                // $isSelf "wxid_i5qnb05xy9522"
+                if($this->wxid == 'wxid_i5qnb05xy9522'){
+                    // 自己转账出去
+                    $message = "[对外转账]";
+                    $message .= "\n金额:" . $paidMoney/100;
+                    $message .= "\n发起人:" . $customer->name. ':'. $customer->id;
+                    $message .= "\n接收人:？";
+                    // sq对账群 统计群 上下班时间设置
+                    $this->sendMessage($message, $this->groups['statistics']);
+                }
                 // 转账金额 不在 所有的价格范围里
                 $message = "转账金额有误：";
                 $message .= "\n金额:" . $paidMoney/100 ;
-                $message .= "\n客户:" . $customer->name. ':'. $customer->id ;
+                $message .= "\n客户:" . $customer->name. ':'. $customer->id;
                 $message .= "\n电话:" . $customer->telephone;
                 $message .= "\n地址:" . $customer->address_detail;
-
-                $this->sendMessage($message, "20479347997@chatroom");
+                // 退款群
+                $this->sendMessage($message, $this->groups['refund']);
                 return $this->sendMessage("转账金额有误, 回复【999】，24小时内退款！");
             }
         }
@@ -425,7 +440,8 @@ class MessageController extends Controller
                }
                 // 如果用户收到2次菜单了，不再发送菜单，随意聊天
                 if($this->cache->get('menu.count')>1){
-                    return $this->sendMessage("对不起，小泉还在学习中[抱拳]\n请按菜单指示操作定水[ThumbsUp]\n回复【讲个笑话】或【石岭天气】试试看吧");
+                    $this->cache->forget('menu.count'); // 交替出现
+                    return $this->sendMessage("对不起，小泉还在学习中[抱拳]\n请按菜单指示操作定水[握手]\n回复【讲个笑话】或【石岭天气】试试[强]");
                 }else{
                     $this->cache->increment('menu.count');
                     return $this->sendMessage($menu);
