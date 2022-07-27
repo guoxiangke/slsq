@@ -93,8 +93,23 @@ class MessageController extends Controller
             }
             // sq对账群 统计群 上下班时间设置
             if($wxidOrCurrentRoom == $this->groups['statistics']){
-                if($keyword == '今日统计'){
-                    return Artisan::call('overview:today');
+                switch ($keyword) {
+                    case '今日统计':
+                        return Artisan::call('order:overview 0 --byday');
+                        break;
+                    case '昨日统计':
+                        return Artisan::call('order:overview 1 --byday');
+                        break;
+                    case '本月统计':
+                        return Artisan::call('order:overview 0');
+                        break;
+                    case '上月统计':
+                        return Artisan::call('order:overview 1');
+                        break;
+                    
+                    default:
+                        // code...
+                        break;
                 }
                 // 上下班时间设置:on:7
                 // 上下班时间设置:off:23
@@ -118,7 +133,7 @@ class MessageController extends Controller
                     $order->deliver_id = $customer->id;
                     $order->status = 4; //4 配送完毕，收到配送人员反馈
                     $order->saveQuietly(); // 不要OrderObserver
-                    $this->sendMessage("[订单完成]\n订单ID：{$orderId}\n{$contents[3]}\n谢谢师傅，辛苦了[抱拳][强]", $wxidOrCurrentRoom);
+                    $this->sendMessage("[订单完成]\n{$contents[1]}\n{$contents[2]}\n{$contents[3]}\n{$contents[4]}\n{$contents[5]}\n谢谢师傅，辛苦了[抱拳][强]", $wxidOrCurrentRoom);
                 }else{
                     return $this->sendMessage("认领师傅备注不正确！应为：\n厂~1~xxx\n厂~2~xxx", $wxidOrCurrentRoom);
                 }

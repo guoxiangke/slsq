@@ -7,15 +7,23 @@ use App\Models\Order;
 use Carbon\Carbon;
 use App\Services\Xbot;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
-class TodayOverview extends Command
+class OrderOverview extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
+     * 默认按月统计 By Month
+     * order:overview 0 #当月  
+     * order:overview 1 #上月
+     * 按天统计 --byday
+     * order:overview 0 --byday #当天
+     * order:overview 1 --byday #1天前
+     * order:overview 2 --byday #2天前
      */
-    protected $signature = 'overview:today';
+    protected $signature = 'order:overview {offset?} {--byday}';
 
     /**
      * The console command description.
@@ -31,9 +39,27 @@ class TodayOverview extends Command
      */
     public function handle()
     {
+        $offset = $this->argument('offset')??'0';
+        $isByDay = $this->option('byday')??false;
+        if($isByDay){
+            $from = Carbon::now()->subDays($offset)->startOfDay();
+            if($offset == 0){ //今天的话，截止到当前时间，而非endOfDay
+                $to = Carbon::now()->subDays($offset);
+            }else{
+                $to = Carbon::now()->subDays($offset)->endOfDay();
+            }
+        }else{ // By Month
+            $from = Carbon::now()->subMonths($offset)->startOfMonth();
+            if($offset == 0){ //当月的话，截止到当前时间，而非endOfMonth
+                $to = Carbon::now()->subMonths($offset);
+            }else{
+                $to = Carbon::now()->subMonths($offset)->endOfMonth();
+            }
+        }
+
         // if($keyword == '今日统计'){
-        $orders = Order::whereDate('created_at', Carbon::today())->get();
-        $message = "====-今日统计-====";
+        $orders = Order::whereBetween('created_at', [$from, $to])->get();
+        $message = "====-订单统计-====";
         $message .= "\n订单总数：" . $orders->count();
         $total = $orders->reduce(function ($carry, $order) {
             $productIsVoucher = Str::contains($order->product->name, ['水票'])?true:false;
@@ -75,13 +101,15 @@ class TodayOverview extends Command
             $message .= "\n金额：¥{$price}";
         }
         $message .= "\n==================";
-        $message .= "\n截止时间：".now();
+        $message .= "\n起始时间：" . $from;
+        $message .= "\n截止时间：" . $to;
         // $this->sendMessage($message);
         app(Xbot::class)->send($message, "20388549423@chatroom");
 
         $message = "====-按师傅统计-====";
         // 按师傅统计
-        $orders = Order::whereDate('created_at', Carbon::today())
+        $orders = Order::whereBetween('created_at', [$from, $to])
+            // whereDate('created_at', Carbon::today())
             ->where('status', 4) // 4 配送完毕，收到配送人员反馈
             ->get()
             ->groupBy('deliver_id');
@@ -104,8 +132,8 @@ class TodayOverview extends Command
             }
             $message .= "\n--------------------------";
         }
-        $message .= "\n截止时间：".now();
-
+        $message .= "\n起始时间：" . $from;
+        $message .= "\n截止时间：" . $to;
         app(Xbot::class)->send($message, "20388549423@chatroom");
 
         return 0;
