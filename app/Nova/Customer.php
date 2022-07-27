@@ -48,6 +48,7 @@ class Customer extends Resource
             Text::make('telephone')->rules('digits:11'),
             Text::make('详细地址', 'address_detail')->rules('required', 'string', 'max:255'),
             BelongsTo::make('deliver'),
+            DateTime::make('created_at')->sortable(),
         ];
     }
 

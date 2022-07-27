@@ -51,6 +51,7 @@ class Order extends Resource
             Text::make('price')->rules('required', 'string', 'max:255'),
             Text::make('amount')->rules('required', 'string', 'max:255'),
             Text::make('status')->rules('digits:1'),
+            DateTime::make('created_at')->sortable(),
         ];
     }
 

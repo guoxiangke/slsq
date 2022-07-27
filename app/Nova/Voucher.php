@@ -47,6 +47,7 @@ class Voucher extends Resource
             Text::make('amount')->rules('required', 'string', 'max:255'),
             Text::make('left')->rules('required', 'string', 'max:255'),
             Text::make('price')->rules('required'),
+            DateTime::make('created_at')->sortable(),
         ];
     }
 
