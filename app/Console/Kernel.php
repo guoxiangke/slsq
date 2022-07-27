@@ -18,7 +18,7 @@ class Kernel extends ConsoleKernel
         // $schedule->command('inspire')->hourly();
         $schedule->command('order:overview 0 --byday')->cron('0 12,19 * * *');//每天12,19点，发当天的统计
         $schedule->command('order:overview 1')->cron('0 9 1 * *'); //每月1号9点，发上个月的统计
-        $schedule->command('heartbeat:hit')->cron('*/5 6-21 * * *');
+        $schedule->command('heartbeat:hit')->cron('0 * * * *');
     }
 
     /**
