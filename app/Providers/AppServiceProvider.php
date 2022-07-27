@@ -9,6 +9,7 @@ use App\Observers\CustomerObserver;
 use App\Observers\OrderObserver;
 use App\Services\Xbot;
 use App\Services\Icr;
+use Illuminate\Support\Facades\URL;
 
 
 class AppServiceProvider extends ServiceProvider
