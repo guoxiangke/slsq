@@ -85,7 +85,7 @@ class MessageController extends Controller
                     $secondLine = explode(":", $contents[1]); //客户:AI天空蔚蓝:1
                     $customer = Customer::find($secondLine[2]);
                     $customer->update(['deliver_id' => $deliverId]);//1~4
-                    $this->sendMessage("[认领成功]\n{$contents[1]}\n此客户定单将发送到：\n【sq师傅{$deliverId}群】[胜利][强]", $wxidOrCurrentRoom);
+                    $this->sendMessage("[认领成功]->{$deliverId}群\n{$contents[1]}\n{$contents[2]}\n{$contents[3]}\n快去【sq师傅{$deliverId}群】接单吧[胜利][强]", $wxidOrCurrentRoom);
                     // TODO 认领成功前，不可再次下单！
                     // 把首单发送到指定的群！
                     Order::where('customer_id', $customer->id)->latest()->first()->update(['deliver_id'=>$deliverId]); // 暂时借用 deliver_id 字段
