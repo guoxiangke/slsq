@@ -60,13 +60,13 @@ class OrderObserver
         $message .= "\n电话:" . $order->customer->telephone;
         $message .= "\n地址:" . $order->customer->address_detail;
 
-        $deliverId = $order->customer->deliver->id; //分群
-        $deliver = Deliver::find($deliverId);
-        $to = $deliver->wxid; // 发到对应的4个群里！
         // sq水票订单
         if($productIsVoucher){
             $to = '20779741807@chatroom';
         }else{
+            $deliverId = $order->customer->deliver->id; //分群
+            $deliver = Deliver::find($deliverId);
+            $to = $deliver->wxid; // 发到对应的4个群里！
             $message .= "\n如客户已签收，请转至本群更新订单状态";
         }
         return app(Xbot::class)->send($message, $to);
