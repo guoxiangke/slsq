@@ -192,6 +192,10 @@ class MessageController extends Controller
                 return $this->_return();
                 break;
             
+            case '收到红包，请在手机上查看':
+                $this->sendMessage("请使用微信转账，暂不支持红包支付！\n红包将会在24小时内自动退还到您的微信\n不好意思，小泉还在成长中[害羞]\n给您带来的不便，谢谢理解[抱拳]");
+                return $this->_return();
+                break;
             default:
                 // code...
                 break;
