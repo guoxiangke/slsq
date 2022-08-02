@@ -3,14 +3,20 @@
 namespace Laravel\Nova\Testing\Browser\Pages;
 
 use Laravel\Dusk\Browser;
-use Laravel\Nova\Nova;
 
 class UpdateAttached extends Page
 {
     public $resourceName;
+
     public $resourceId;
+
     public $relation;
+
     public $relatedId;
+
+    public $viaRelationship;
+
+    public $viaPivotId;
 
     /**
      * Create a new page instance.
@@ -19,14 +25,20 @@ class UpdateAttached extends Page
      * @param  string  $resourceId
      * @param  string  $relation
      * @param  string  $relatedId
+     * @param  string|null  $viaRelationship
+     * @param  string|null  $viaPivotId
      * @return void
      */
-    public function __construct($resourceName, $resourceId, $relation, $relatedId)
+    public function __construct($resourceName, $resourceId, $relation, $relatedId, $viaRelationship = null, $viaPivotId = null)
     {
         $this->relation = $relation;
         $this->relatedId = $relatedId;
         $this->resourceId = $resourceId;
         $this->resourceName = $resourceName;
+        $this->viaRelationship = $viaRelationship;
+        $this->viaPivotId = $viaPivotId;
+
+        $this->setNovaPage("/resources/{$this->resourceName}/{$this->resourceId}/edit-attached/{$this->relation}/{$this->relatedId}");
     }
 
     /**
@@ -36,7 +48,10 @@ class UpdateAttached extends Page
      */
     public function url()
     {
-        return Nova::path().'/resources/'.$this->resourceName.'/'.$this->resourceId.'/edit-attached/'.$this->relation.'/'.$this->relatedId.'?viaRelationship='.$this->relation;
+        return $this->novaPageUrl.'?'.http_build_query(array_filter([
+            'viaRelationship' => $this->viaRelationship ?? $this->relation,
+            'viaPivotId' => $this->viaPivotId,
+        ]));
     }
 
     /**
@@ -71,17 +86,6 @@ class UpdateAttached extends Page
      */
     public function assert(Browser $browser)
     {
-        $browser->pause(500)
-                ->waitFor('#nova .content form', 25);
-    }
-
-    /**
-     * Get the element shortcuts for the page.
-     *
-     * @return array
-     */
-    public function elements()
-    {
-        return [];
+        $browser->assertOk()->waitFor('@nova-form');
     }
 }

@@ -3,6 +3,7 @@
 namespace Laravel\Nova\Http\Controllers;
 
 use Illuminate\Routing\Controller;
+use Laravel\Nova\Actions\ActionCollection;
 use Laravel\Nova\Http\Requests\ActionRequest;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
@@ -12,23 +13,35 @@ class ActionController extends Controller
      * List the actions for the given resource.
      *
      * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public function index(NovaRequest $request)
     {
+        $resourceId = with($request->input('resources'), function ($resourceIds) {
+            return is_array($resourceIds) && count($resourceIds) === 1 ? $resourceIds[0] : null;
+        });
+
         $resource = $request->newResourceWith(
-            ($request->resourceId
-                ? $request->findModelQuery()->first()
-                : null) ?? $request->model()
+            $request->findModel($resourceId) ?? $request->model()
         );
 
-        return response()->json([
+        return response()->json(with([
             'actions' => $this->availableActions($request, $resource),
             'pivotActions' => [
                 'name' => $request->pivotName(),
                 'actions' => $resource->availablePivotActions($request),
             ],
-        ]);
+        ], function ($payload) use ($resource, $request) {
+            $actionCounts = ($request->display !== 'detail' ? $payload['actions'] : $resource->resolveActions($request))->countsByTypeOnIndex();
+            $pivotActionCounts = ActionCollection::make($payload['pivotActions']['actions'])->countsByTypeOnIndex();
+
+            $payload['counts'] = [
+                'standalone' => $actionCounts['standalone'] + $pivotActionCounts['standalone'],
+                'resource' => $actionCounts['resource'] + $pivotActionCounts['resource'],
+            ];
+
+            return $payload;
+        }));
     }
 
     /**
@@ -49,7 +62,7 @@ class ActionController extends Controller
      *
      * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
      * @param  \Laravel\Nova\Resource  $resource
-     * @return \Illuminate\Support\Collection
+     * @return \Laravel\Nova\Actions\ActionCollection<int, \Laravel\Nova\Actions\Action>
      */
     protected function availableActions(NovaRequest $request, $resource)
     {

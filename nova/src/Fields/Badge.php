@@ -3,24 +3,10 @@
 namespace Laravel\Nova\Fields;
 
 use Exception;
+use Laravel\Nova\Badge as BadgeComponent;
 
 class Badge extends Field
 {
-    /**
-     * Create a new field.
-     *
-     * @param  string  $name
-     * @param  string|callable|null  $attribute
-     * @param  callable|null  $resolveCallback
-     * @return void
-     */
-    public function __construct($name, $attribute = null, callable $resolveCallback = null)
-    {
-        parent::__construct($name, $attribute, $resolveCallback);
-
-        $this->exceptOnForms();
-    }
-
     /**
      * The text alignment for the field's text in tables.
      *
@@ -45,7 +31,7 @@ class Badge extends Field
     /**
      * The callback used to determine the field's label.
      *
-     * @var callable
+     * @var callable|null
      */
     public $labelCallback;
 
@@ -57,21 +43,52 @@ class Badge extends Field
     public $map;
 
     /**
+     * Indicates if the field should show icons.
+     *
+     * @var bool
+     */
+    public $withIcons = false;
+
+    /**
      * The built-in badge types and their corresponding CSS classes.
+     *
+     * @var array<string, string>
+     */
+    public $types = [];
+
+    /**
+     * The icons that should be applied to the field's possible values.
      *
      * @var array
      */
-    public $types = [
-        'success' => 'bg-success-light text-success-dark',
-        'info' => 'bg-info-light text-info-dark',
-        'danger' => 'bg-danger-light text-danger-dark',
-        'warning' => 'bg-warning-light text-warning-dark',
+    public $icons = [
+        'success' => 'check-circle',
+        'info' => 'information-circle',
+        'danger' => 'exclamation-circle',
+        'warning' => 'exclamation-circle',
     ];
+
+    /**
+     * Create a new field.
+     *
+     * @param  string  $name
+     * @param  string|\Closure|callable|object|null  $attribute
+     * @param  (callable(mixed, mixed, ?string):mixed)|null  $resolveCallback
+     * @return void
+     */
+    public function __construct($name, $attribute = null, callable $resolveCallback = null)
+    {
+        parent::__construct($name, $attribute, $resolveCallback);
+
+        $this->addTypes(BadgeComponent::$types);
+
+        $this->exceptOnForms();
+    }
 
     /**
      * Add badge types and their corresponding CSS classes to the built-in ones.
      *
-     * @param  array  $types
+     * @param  array<string, string>  $types
      * @return $this
      */
     public function addTypes(array $types)
@@ -84,7 +101,7 @@ class Badge extends Field
     /**
      * Set the badge types and their corresponding CSS classes.
      *
-     * @param  array  $types
+     * @param  array<string, string>  $types
      * @return $this
      */
     public function types(array $types)
@@ -134,19 +151,47 @@ class Badge extends Field
     }
 
     /**
+     * Set the field to display icons, optionally passing an icon mapping.
+     *
+     * @return $this
+     */
+    public function withIcons()
+    {
+        $this->withIcons = true;
+
+        return $this;
+    }
+
+    /**
+     * Set the icons for each possible field value.
+     *
+     * @param  array  $icons
+     * @return $this
+     */
+    public function icons($icons)
+    {
+        $this->withIcons = true;
+        $this->icons = $icons;
+
+        return $this;
+    }
+
+    /**
      * Resolve the Badge's CSS classes based on the field's value.
      *
      * @return string
+     *
+     * @throws \Exception
      */
     public function resolveBadgeClasses()
     {
-        try {
-            $mappedValue = $this->map[$this->value] ?? $this->value;
+        $mappedValue = $this->map[$this->value] ?? $this->value;
 
-            return $this->types[$mappedValue];
-        } catch (Exception $e) {
+        if (! isset($this->types[$mappedValue])) {
             throw new Exception("Error trying to find type [{$mappedValue}] inside of the field's type mapping.");
         }
+
+        return $this->types[$mappedValue];
     }
 
     /**
@@ -164,15 +209,26 @@ class Badge extends Field
     }
 
     /**
+     * Resolve the display icon for the Badge.
+     *
+     * @return string
+     */
+    public function resolveIcon()
+    {
+        return $this->icons[$this->value];
+    }
+
+    /**
      * Prepare the element for JSON serialization.
      *
-     * @return array
+     * @return array<string, mixed>
      */
-    public function jsonSerialize()
+    public function jsonSerialize(): array
     {
         return array_merge(parent::jsonSerialize(), [
             'label' => $this->resolveLabel(),
             'typeClass' => $this->resolveBadgeClasses(),
+            'icon' => $this->withIcons ? $this->resolveIcon() : null,
         ]);
     }
 }

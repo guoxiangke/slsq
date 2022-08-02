@@ -13,18 +13,20 @@ class MorphableController extends Controller
      * List the available morphable resources for a given resource.
      *
      * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
-     * @return \Illuminate\Http\Response
+     * @return array
      */
-    public function index(NovaRequest $request)
+    public function __invoke(NovaRequest $request)
     {
         $relatedResource = Nova::resourceForKey($request->type);
 
         abort_if(is_null($relatedResource), 403);
 
         $field = $request->newResource()
-                        ->availableFields($request)
+                        ->availableFieldsOnIndexOrDetail($request)
                         ->whereInstanceOf(RelatableField::class)
-                        ->findFieldByAttribute($request->field);
+                        ->findFieldByAttribute($request->field, function () {
+                            abort(404);
+                        });
 
         $withTrashed = $this->shouldIncludeTrashed(
             $request, $relatedResource

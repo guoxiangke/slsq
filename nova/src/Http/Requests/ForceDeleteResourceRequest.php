@@ -11,7 +11,7 @@ class ForceDeleteResourceRequest extends DeletionRequest
      * Get the selected models for the action in chunks.
      *
      * @param  int  $count
-     * @param  \Closure  $callback
+     * @param  \Closure(\Illuminate\Support\Collection):void  $callback
      * @return mixed
      */
     public function chunks($count, Closure $callback)
@@ -33,5 +33,15 @@ class ForceDeleteResourceRequest extends DeletionRequest
                         ->filter
                         ->authorizedToForceDelete($this)
                         ->map->model();
+    }
+
+    /**
+     * Determine if the request is for a single resource only.
+     *
+     * @return bool
+     */
+    public function isForSingleResource()
+    {
+        return $this->resources !== 'all' && count($this->resources) == 1;
     }
 }

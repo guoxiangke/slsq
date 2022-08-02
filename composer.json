@@ -10,10 +10,11 @@
         "guzzlehttp/guzzle": "^7.2",
         "laravel/framework": "^9.11",
         "laravel/jetstream": "^2.8",
-        "laravel/nova": "*",
+        "laravel/nova": "~4.0",
         "laravel/sanctum": "^2.14.1",
         "laravel/tinker": "^2.7",
         "livewire/livewire": "^2.5",
+        "moirei/laravel-vouchers": "^3.0",
         "plank/laravel-metable": "^5.2",
         "predis/predis": "^2.0",
         "spatie/laravel-activitylog": "^4.5",
@@ -52,7 +53,8 @@
             "@php artisan package:discover --ansi"
         ],
         "post-update-cmd": [
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
+            "@php artisan nova:publish"
         ],
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""

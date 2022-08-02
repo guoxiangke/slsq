@@ -12,14 +12,16 @@ class AssociatableController extends Controller
      * List the available related resources for a given resource.
      *
      * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
-     * @return \Illuminate\Http\Response
+     * @return array
      */
-    public function index(NovaRequest $request)
+    public function __invoke(NovaRequest $request)
     {
         $field = $request->newResource()
-                    ->availableFields($request)
+                    ->availableFieldsOnIndexOrDetail($request)
                     ->whereInstanceOf(RelatableField::class)
-                    ->findFieldByAttribute($request->field);
+                    ->findFieldByAttribute($request->field, function () {
+                        abort(404);
+                    });
 
         $withTrashed = $this->shouldIncludeTrashed(
             $request, $associatedResource = $field->resourceClass

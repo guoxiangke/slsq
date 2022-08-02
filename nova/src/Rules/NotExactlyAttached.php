@@ -3,8 +3,10 @@
 namespace Laravel\Nova\Rules;
 
 use Illuminate\Contracts\Validation\Rule;
+use Illuminate\Support\Arr;
 use Laravel\Nova\Http\Requests\NovaRequest;
 use Laravel\Nova\Nova;
+use Laravel\Nova\ResourceToolElement;
 
 class NotExactlyAttached implements Rule
 {
@@ -26,7 +28,7 @@ class NotExactlyAttached implements Rule
      * Create a new rule instance.
      *
      * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
-     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  \Illuminate\Database\Eloquent\Model|null  $model
      * @return void
      */
     public function __construct(NovaRequest $request, $model)
@@ -44,25 +46,34 @@ class NotExactlyAttached implements Rule
      */
     public function passes($attribute, $value)
     {
-        $query = $this->model
-            ->{$this->request->viaRelationship}()
-            ->withoutGlobalScopes();
+        /** @var \Illuminate\Database\Eloquent\Relations\MorphToMany|\Illuminate\Database\Eloquent\Relations\BelongsToMany $relation */
+        $relation = $this->model->{$this->request->viaRelationship}();
 
-        $relatedModel = $query->getModel();
+        $pivot = $relation->newPivot();
+        $query = $relation->withoutGlobalScopes()
+                        ->where($relation->getQualifiedRelatedPivotKeyName(), '=', $this->request->input($this->request->relatedResource));
 
-        $resource = with(Nova::resourceForModel($this->model), function ($resource) {
-            return new $resource($this->model);
-        });
+        $resource = Nova::newResourceFromModel($this->model);
 
         $resource->resolvePivotFields($this->request, $this->request->relatedResource)
-            ->each(function ($field) use ($query) {
-                $query->wherePivot($field->attribute, $this->request->input($field->attribute));
+            ->reject(function ($field) {
+                return $field instanceof ResourceToolElement || $field->computed();
+            })
+            ->each(function ($field) use ($pivot) {
+                $field->fill($this->request, $pivot, $field->attribute);
             });
 
-        return ! in_array(
-            $this->request->input($this->request->relatedResource),
-            $query->pluck($relatedModel->getQualifiedKeyName())->all()
-        );
+        $attributes = $pivot->toArray();
+
+        foreach ($query->cursor() as $result) {
+            $pivots = Arr::only($result->pivot->toArray(), array_keys($attributes));
+
+            if (array_diff_assoc(Arr::flatten($pivots), Arr::flatten($attributes)) === []) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

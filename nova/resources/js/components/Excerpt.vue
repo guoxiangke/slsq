@@ -14,15 +14,17 @@
       v-html="content"
     />
 
-    <a
+    <button
+      type="button"
       v-if="!shouldShow"
       @click="toggle"
-      class="cursor-pointer dim inline-block text-primary font-bold"
+      class="link-default"
       :class="{ 'mt-6': expanded }"
       aria-role="button"
+      tabindex="0"
     >
       {{ showHideLabel }}
-    </a>
+    </button>
   </div>
   <div v-else>&mdash;</div>
 </template>

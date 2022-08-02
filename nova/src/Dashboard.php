@@ -2,23 +2,52 @@
 
 namespace Laravel\Nova;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Laravel\Nova\Menu\MenuItem;
 
-abstract class Dashboard extends Element
+abstract class Dashboard extends Element implements HasMenu
 {
-    use AuthorizedToSee,
-        Metable,
-        Makeable,
-        ProxiesCanSeeToGate;
+    use AuthorizedToSee;
+    use Metable;
+    use Makeable;
+    use ProxiesCanSeeToGate;
+
+    /**
+     * The displayable name of the dashboard.
+     *
+     * @var string
+     */
+    public $name;
+
+    /**
+     * Get the key value for the dashboard.
+     *
+     * @return string
+     */
+    public function key()
+    {
+        return md5($this->label());
+    }
 
     /**
      * Get the displayable name of the dashboard.
      *
      * @return string
      */
-    public static function label()
+    public function name()
     {
-        return Str::singular(class_basename(get_called_class()));
+        return $this->name ?: Nova::humanize($this);
+    }
+
+    /**
+     * Get the displayable name of the dashboard.
+     *
+     * @return string
+     */
+    public function label()
+    {
+        return $this->name();
     }
 
     /**
@@ -26,8 +55,26 @@ abstract class Dashboard extends Element
      *
      * @return string
      */
-    public static function uriKey()
+    public function uriKey()
     {
         return Str::singular(Str::snake(class_basename(get_called_class()), '-'));
+    }
+
+    /**
+     * Get the cards that should be displayed on the Nova dashboard.
+     *
+     * @return array
+     */
+    abstract public function cards();
+
+    /**
+     * Build the menu that renders the navigation links for the tool.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return mixed
+     */
+    public function menu(Request $request)
+    {
+        return MenuItem::dashboard(static::class);
     }
 }

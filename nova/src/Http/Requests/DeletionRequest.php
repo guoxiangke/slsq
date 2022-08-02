@@ -4,6 +4,9 @@ namespace Laravel\Nova\Http\Requests;
 
 use Closure;
 
+/**
+ * @property-read string|array<int, mixed> $resources
+ */
 class DeletionRequest extends NovaRequest
 {
     use QueriesResources;
@@ -12,13 +15,15 @@ class DeletionRequest extends NovaRequest
      * Get the selected models for the action in chunks.
      *
      * @param  int  $count
-     * @param  \Closure  $callback
-     * @param  \Closure  $authCallback
+     * @param  \Closure(\Illuminate\Support\Collection):void  $callback
+     * @param  \Closure(\Illuminate\Support\Collection):\Illuminate\Support\Collection  $authCallback
      * @return mixed
      */
     protected function chunkWithAuthorization($count, Closure $callback, Closure $authCallback)
     {
-        $this->toSelectedResourceQuery()->when(! $this->forAllMatchingResources(), function ($query) {
+        $model = $this->model();
+
+        $this->toSelectedResourceQuery()->when(! $this->allResourcesSelected(), function ($query) {
             $query->whereKey($this->resources);
         })->tap(function ($query) {
             $query->getQuery()->orders = [];
@@ -28,7 +33,7 @@ class DeletionRequest extends NovaRequest
             if ($models->isNotEmpty()) {
                 $callback($models);
             }
-        });
+        }, $model->getQualifiedKeyName(), $model->getKeyName());
     }
 
     /**
@@ -38,20 +43,10 @@ class DeletionRequest extends NovaRequest
      */
     protected function toSelectedResourceQuery()
     {
-        if ($this->forAllMatchingResources()) {
+        if ($this->allResourcesSelected()) {
             return $this->toQuery();
         }
 
         return $this->newQueryWithoutScopes();
-    }
-
-    /**
-     * Determine if the request is for all matching resources.
-     *
-     * @return bool
-     */
-    public function forAllMatchingResources()
-    {
-        return $this->resources === 'all';
     }
 }

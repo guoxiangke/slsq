@@ -1,6 +1,12 @@
-import { Errors } from 'laravel-nova'
+import { Errors } from 'form-backend-validation'
 
 export default {
+  props: {
+    formUniqueId: {
+      type: String,
+    },
+  },
+
   data: () => ({
     validationErrors: new Errors(),
   }),
@@ -10,10 +16,10 @@ export default {
      * Handle all response error.
      */
     handleResponseError(error) {
-      if (error.response.status == 422) {
-        this.validationErrors = new Errors(error.response.data.errors)
+      if (error.response === undefined || error.response.status == 500) {
         Nova.error(this.__('There was a problem submitting the form.'))
-      } else if (error.response.status == 500) {
+      } else if (error.response.status == 422) {
+        this.validationErrors = new Errors(error.response.data.errors)
         Nova.error(this.__('There was a problem submitting the form.'))
       } else {
         Nova.error(
@@ -36,7 +42,7 @@ export default {
      * Handle updating response error.
      */
     handleOnUpdateResponseError(error) {
-      if (error.response.status == 409) {
+      if (error.response && error.response.status == 409) {
         Nova.error(
           this.__(
             'Another user has updated this resource since this page was loaded. Please refresh the page and try again.'

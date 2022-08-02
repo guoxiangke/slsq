@@ -1,19 +1,47 @@
 <template>
-  <div class="flex border-b border-40 -mx-6 px-6">
-    <div class="w-1/4 py-4">
+  <div
+    class="flex flex-col md:flex-row -mx-6 px-6 py-2 md:py-0 space-y-2 md:space-y-0"
+    :class="{ 'border-t border-gray-100 dark:border-gray-700': index !== 0 }"
+    :dusk="field.attribute"
+  >
+    <div class="md:w-1/4 md:py-3">
       <slot>
-        <h4 class="font-normal text-80">{{ label }}</h4>
+        <h4 class="font-bold md:font-normal">
+          <span>{{ label }}</span>
+        </h4>
       </slot>
     </div>
-    <div class="w-3/4 py-4 break-words">
+    <div class="md:w-3/4 md:py-3 break-all lg:break-words">
       <slot name="value">
-        <p v-if="fieldValue && !shouldDisplayAsHtml" class="text-90">
+        <button
+          v-if="fieldValue && field.copyable && !shouldDisplayAsHtml"
+          @click.prevent="copy"
+          type="button"
+          class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-900 text-gray-500 hover:text-gray-500 active:text-gray-600 rounded-lg px-1 -mx-1"
+          v-tooltip="__('Copy to clipboard')"
+        >
+          <span ref="theFieldValue">
+            {{ fieldValue }}
+          </span>
+
+          <Icon
+            class="text-gray-500 dark:text-gray-400 ml-1"
+            :solid="true"
+            type="clipboard"
+            width="14"
+          />
+        </button>
+
+        <p
+          v-else-if="fieldValue && !field.copyable && !shouldDisplayAsHtml"
+          class="text-90 flex items-center"
+        >
           {{ fieldValue }}
         </p>
         <div
-          v-else-if="fieldValue && shouldDisplayAsHtml"
+          v-else-if="fieldValue && !field.copyable && shouldDisplayAsHtml"
           v-html="field.value"
-        ></div>
+        />
         <p v-else>&mdash;</p>
       </slot>
     </div>
@@ -21,17 +49,33 @@
 </template>
 
 <script>
+import { CopiesToClipboard } from '@/mixins'
+
 export default {
+  mixins: [CopiesToClipboard],
   props: {
+    index: {
+      type: Number,
+      required: true,
+    },
+
     field: {
       type: Object,
       required: true,
     },
+
     fieldName: {
       type: String,
       default: '',
     },
   },
+
+  methods: {
+    copy() {
+      this.copyValueToClipboard(this.fieldValue)
+    },
+  },
+
   computed: {
     label() {
       return this.fieldName || this.field.name

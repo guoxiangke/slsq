@@ -15,14 +15,25 @@ class RelatableAttachment extends Relatable
      */
     protected function authorize($resource, $model)
     {
-        $parentResource = Nova::resourceForModel(
-            $parentModel = $this->request->findModelOrFail()
-        );
+        $parentResource = Nova::newResourceFromModel($this->request->findModelOrFail());
 
-        return (new $parentResource($parentModel))->authorizedToAttachAny(
+        return $parentResource->authorizedToAttachAny(
             $this->request, $model
-        ) || (new $parentResource($parentModel))->authorizedToAttach(
+        ) || $parentResource->authorizedToAttach(
             $this->request, $model
         );
+    }
+
+    /**
+     * Determine if the relationship is "full".
+     *
+     * @param  \Illuminate\Database\Eloquent\Model  $model
+     * @param  string  $attribute
+     * @param  mixed  $value
+     * @return bool
+     */
+    protected function relationshipIsFull($model, $attribute, $value)
+    {
+        return false;
     }
 }

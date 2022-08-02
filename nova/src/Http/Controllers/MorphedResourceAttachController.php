@@ -12,7 +12,7 @@ class MorphedResourceAttachController extends ResourceAttachController
      *
      * @param  \Laravel\Nova\Http\Requests\NovaRequest  $request
      * @param  \Illuminate\Database\Eloquent\Relations\MorphToMany  $relationship
-     * @return \Illuminate\Database\Eloquent\Pivot
+     * @return \Illuminate\Database\Eloquent\Relations\Pivot
      */
     protected function initializePivot(NovaRequest $request, $relationship)
     {
@@ -20,9 +20,23 @@ class MorphedResourceAttachController extends ResourceAttachController
             abort_unless($resource->hasRelatableField($request, $request->viaRelationship), 404);
         })->model();
 
+        $parentKey = $request->resourceId;
+        $relatedKey = $request->input($request->relatedResource);
+
+        $parentKeyName = $relationship->getParentKeyName();
+        $relatedKeyName = $relationship->getRelatedKeyName();
+
+        if ($parentKeyName !== $request->model()->getKeyName()) {
+            $parentKey = $request->findModelOrFail()->{$parentKeyName};
+        }
+
+        if ($relatedKeyName !== ($request->newRelatedResource()::newModel())->getKeyName()) {
+            $relatedKey = $request->findRelatedModelOrFail()->{$relatedKeyName};
+        }
+
         ($pivot = $relationship->newPivot())->forceFill([
-            $relationship->getForeignPivotKeyName() => $request->resourceId,
-            $relationship->getRelatedPivotKeyName() => $request->input($request->relatedResource),
+            $relationship->getForeignPivotKeyName() => $parentKey,
+            $relationship->getRelatedPivotKeyName() => $relatedKey,
             $relationship->getMorphType() => $model->{$request->viaRelationship}()->getMorphClass(),
         ]);
 
