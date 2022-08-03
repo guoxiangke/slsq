@@ -21,7 +21,9 @@ class OrderObserver
     public function created(Order $order)
     {
         // 首单赠送1张水票
-        if(Order::where('customer_id', $order->customer_id)->count() ==1){
+        // product_id=8 赠送老师20张水票活动
+        $count = Order::where('customer_id', $order->customer_id)->where('product_id','<>',8)->count();
+        if($count == 1){
             $voucher = Voucher::create([
                 'customer_id' => $order->customer_id,
                 'amount' => 1,

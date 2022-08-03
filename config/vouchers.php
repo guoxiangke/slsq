@@ -17,7 +17,7 @@ return [
         * Example: foo
         * Generated Code: foo-AGXF-1NH8
         */
-        'prefix' => null,
+        'prefix' => 'sq22',
 
         /*
         * Voucher code suffix.
@@ -31,12 +31,12 @@ return [
         * Code mask.
         * All asterisks will be removed by random characters.
         */
-        'mask' => '***0***',
+        'mask' => '*****',
 
         /*
         * Separator to be used between prefix, code and suffix.
         */
-        'separator' => '-',
+        'separator' => '',
     ],
 
     /*

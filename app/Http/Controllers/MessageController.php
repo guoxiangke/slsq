@@ -31,7 +31,7 @@ class MessageController extends Controller
     public function __invoke(Request $request){
         // 验证消息
         if(!isset($request['msgid']) || $request['self'] == true)  return response()->json(null);
-        
+
         $wxidOrCurrentRoom = $request['wxid'];
         $isRoom = Str::endsWith($wxidOrCurrentRoom, '@chatroom');
         // personal
@@ -41,6 +41,7 @@ class MessageController extends Controller
              $this->wxid = $request['from'];
              $this->remark = $request['from_remark'];
         }
+        $this->cache = Cache::tags($this->wxid);
 
         // 查找或存储用户
         $customer = Customer::firstOrCreate(['wxid'=> $this->wxid]); // "wxid":"bluesky_still","remark":"AI天空蔚蓝"
@@ -54,7 +55,43 @@ class MessageController extends Controller
         }
 
         $keyword = $request['content'];
-        // 群消息处理 
+        // $keyword = 'sq2212345';
+        // Coupon 8位，以sq22开头，后5位为数字，共6位数字
+        if(Str::startsWith($keyword,'sq22') ){
+            $re = '/sq22\d{5}/';
+            preg_match($re, $keyword, $matches);
+            if($matches){
+                $code = $matches[0];
+                try {
+                    $customer->redeem($code);
+                    // 兑奖 送20张水票
+                    $tickets = 20;
+                    $voucher = Voucher::create([
+                        'customer_id' => $customer->id,
+                        'amount' => $tickets,
+                        'left' => $tickets,
+                        'price' => 0,
+                    ]);
+                    // 创建订单
+                    $orderData =[
+                        'customer_id' => $customer->id,
+                        'product_id' => 8, //product_id=8 赠送老师20张水票活动
+                        'amount' => 1, //数量
+                        'deliver_id' => null,
+                        'price' => 0,
+                        'status' => 1, //1 已wx支付
+                    ];
+                    $msg = "兑换成功，{$tickets}张水票已入您的电子账户，编号No:{$voucher->id}\n回复【9391】即可水票订水！";
+                    $this->createOrder($orderData);
+                    return $this->sendMessage($msg);
+                }catch (\Exception $e){
+                    $msg = "兑换码有误，请检查后再试\n" . $e->getMessage();
+                    $this->sendMessage($msg);
+                }
+            }
+            return $this->_return();
+        }
+        // 群消息处理
         if($isRoom){
             $contents = explode("\n", $keyword);
             if($wxidOrCurrentRoom == $this->groups['address_update']){
@@ -106,7 +143,7 @@ class MessageController extends Controller
                     case '上月统计':
                         return Artisan::call('order:overview 1');
                         break;
-                    
+
                     default:
                         // code...
                         break;
@@ -137,11 +174,10 @@ class MessageController extends Controller
                 }else{
                     return $this->sendMessage("认领师傅备注不正确！应为：\n厂~1~xxx\n厂~2~xxx", $wxidOrCurrentRoom);
                 }
-            }            
+            }
             return $this->_return();
         }
 
-        $this->cache = Cache::tags($this->wxid);
         // 如果是 995, 自由聊天5分钟
         // stop.service.and.chat.as.human
         // 【讲个笑话】或【石岭天气】
@@ -161,7 +197,7 @@ class MessageController extends Controller
                 return $this->sendMessage($res->Reply);
             }
         }
-        
+
         // 上下班 时间处理
         $now = date('G.i'); // 0-24 (7.30)
         $on = option('on', 8);
@@ -191,7 +227,7 @@ class MessageController extends Controller
                 $this->sendMessage($message,  $this->groups['refund']);
                 return $this->_return();
                 break;
-            
+
             case '收到红包，请在手机上查看':
                 $this->sendMessage("请使用微信转账，暂不支持红包支付！\n红包将会在24小时内自动退还到您的微信\n不好意思，小泉还在成长中[害羞]\n给您带来的不便，谢谢理解[抱拳]");
                 return $this->_return();
@@ -211,7 +247,7 @@ class MessageController extends Controller
         if(Str::contains($keyword, '请先发送朋友验证请求')){
             return $this->_return();
         }
-        
+
         // 处理 送水工人的 消息
         if($customer->isDeliver()) {
             // return $this->_return();
@@ -235,7 +271,7 @@ class MessageController extends Controller
                 if($hasVouchers && Str::contains($product->name, ['水票'])){
                     // do nothing!
                 }else{
-                    $menu .="\n【{$productKey}】{$name} ¥" . $price/100 . '元';        
+                    $menu .="\n【{$productKey}】{$name} ¥" . $price/100 . '元';
                 }
             }
         }
@@ -251,11 +287,11 @@ class MessageController extends Controller
             $menu .="\n极速订水？微信支付对应金额即可[呲牙]";
         }
         ////////////////////////////Menu//////////////////////////////
-        
+
 
         // 既有地址，又有手机号，下面处理老客户
         // 模拟支付测试： [收到转账]:￥44.0:附言:测试
-        if(Str::contains($request['content'], ['[收到转账]:￥','.0:附言:测试']) 
+        if(Str::contains($request['content'], ['[收到转账]:￥','.0:附言:测试'])
             || $request['type'] == 'wcpay'){
             // $request['content'] = "[收到转账]:￥44.0:附言:测试";//todo  delete!
             $tmp = explode('￥', $request['content']);
@@ -269,7 +305,7 @@ class MessageController extends Controller
                 $this->cache->flush();
                 return $this->sendMessage("派单已发给师傅, 马上出发配送🏃\n请耐心等待[抱拳]");
             }
-                
+
             // ✅ 直接转 准确的 单价 金额
             //  付款 8 16 24 8的倍数的金额
             $next = false;
@@ -372,9 +408,9 @@ class MessageController extends Controller
                 if($order) {
                     $productIsVoucher = Str::contains($order->product->name, ['水票'])?true:false;
                     if($productIsVoucher){
-                        $message .= "\n使用水票订水，请回复【9391】！"; 
+                        $message .= "\n使用水票订水，请回复【9391】！";
                     }else{
-                        $message .= "\n师傅已接单，正在快马加鞭！";    
+                        $message .= "\n师傅已接单，正在快马加鞭！";
                     }
                 }
                 return $this->sendMessage($message);
@@ -399,7 +435,7 @@ class MessageController extends Controller
         $needAmount =  $this->cache->get('order.need.amount');
         $productKey = $this->cache->get('order.product.key', false);
         if($productKey) {
-            // 请问要几桶？ 
+            // 请问要几桶？
             // TODO 提取回复的数量
             $productId = (int) $productKey-9390;
             $product = Product::find($productId);
@@ -473,7 +509,7 @@ class MessageController extends Controller
                     $this->cache->increment('menu.count');
                     return $this->sendMessage($menu);
                 }
-                
+
             }
         }
 
