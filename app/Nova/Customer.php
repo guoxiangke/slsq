@@ -44,12 +44,12 @@ class Customer extends Resource
     {
         return [
             ID::make(__('ID'), 'id')->sortable(),
+            BelongsTo::make('deliver'),
+            DateTime::make('created_at')->sortable(),
             Text::make('Name')->rules('required', 'string', 'max:255'),
             Text::make('wxid')->rules('required', 'string', 'max:255'),
             Text::make('telephone')->rules('digits:11'),
             Text::make('详细地址', 'address_detail')->rules('required', 'string', 'max:255'),
-            BelongsTo::make('deliver'),
-            DateTime::make('created_at')->sortable(),
         ];
     }
 
