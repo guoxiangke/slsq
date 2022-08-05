@@ -22,8 +22,14 @@ class OrderObserver
     {
         // 首单赠送1张水票
         // product_id=8 赠送老师20张水票活动
-        $count = Order::where('customer_id', $order->customer_id)->where('product_id','<>',8)->count();
-        if($count == 1){
+
+        // Fix Bug: 什么是首单？
+        // 除了当前单子外，没有其他单子
+        $count = Order::where('customer_id', $order->customer_id)
+            ->where('product_id','<>',8)
+            ->where('$order','<>',$order->id)
+            ->count();
+        if($count == 0){
             $voucher = Voucher::create([
                 'customer_id' => $order->customer_id,
                 'amount' => 1,
@@ -51,10 +57,10 @@ class OrderObserver
     private function sendMessage(Order $order)
     {
         $message = "[订单跟踪]\n" . $order->product->name . ":" . $order->amount . $order->product->unit . ":" . $order->id;
-        
+
         // 购买水票
         $productIsVoucher = Str::contains($order->product->name, ['水票'])?true:false;
-        
+
         $voucher = Voucher::where('customer_id', $order->customer_id)->where('left', ">" , 0)->first();
         $payInfo = $order->price?($order->price/100 * ($productIsVoucher?1:$order->amount)).'元':'水票:剩余:'.($voucher?$voucher->left:0);
         $message .= "\n支付:" . $payInfo;
