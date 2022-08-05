@@ -27,7 +27,7 @@ class OrderObserver
         // 除了当前单子外，没有其他单子
         $count = Order::where('customer_id', $order->customer_id)
             ->where('product_id','<>',8)
-            ->where('$order','<>',$order->id)
+            ->where('id','<>',$order->id)
             ->count();
         if($count == 0){
             $voucher = Voucher::create([
