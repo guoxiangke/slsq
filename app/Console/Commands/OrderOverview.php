@@ -101,8 +101,8 @@ class OrderOverview extends Command
             $message .= "\n金额：¥{$price}";
         }
         $message .= "\n==================";
-        $message .= "\n起始时间：" . $from->format('M-d H:i');
-        $message .= "\n截止时间：" . $to->format('M-d H:i');
+        $message .= "\n起始时间：" . $from->format('m-d H:i');
+        $message .= "\n截止时间：" . $to->format('m-d H:i');
         // $this->sendMessage($message);
         app(Xbot::class)->send($message, "20388549423@chatroom");
 
@@ -132,8 +132,8 @@ class OrderOverview extends Command
             }
             $message .= "\n--------------------------";
         }
-        $message .= "\n起始时间：" . $from->format('M-d H:i');
-        $message .= "\n截止时间：" . $to->format('M-d H:i');
+        $message .= "\n起始时间：" . $from->format('m-d H:i');
+        $message .= "\n截止时间：" . $to->format('m-d H:i');
         app(Xbot::class)->send($message, "20388549423@chatroom");
 
         return 0;
