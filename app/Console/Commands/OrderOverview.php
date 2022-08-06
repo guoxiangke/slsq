@@ -16,7 +16,7 @@ class OrderOverview extends Command
      *
      * @var string
      * 默认按月统计 By Month
-     * order:overview 0 #当月  
+     * order:overview 0 #当月
      * order:overview 1 #上月
      * 按天统计 --byday
      * order:overview 0 --byday #当天
@@ -72,7 +72,7 @@ class OrderOverview extends Command
         });
 
         $message .= "\n收款总数：¥" . $total/100;
-        // orders orderByProductId 
+        // orders orderByProductId
         $orders1 = $orders->mapToGroups(function ($item, $key) {
             return [$item['product_id'] => $item];
         });
@@ -81,7 +81,7 @@ class OrderOverview extends Command
             $price = 0;
             $paidByVoucher = 0; //是否是水票支付
             foreach ($orders2 as $key => $order) {
-                
+
                 $productIsVoucher = Str::contains($order->product->name, ['水票'])?true:false;
                 if($productIsVoucher){
                     $price += $order->price;
@@ -97,12 +97,12 @@ class OrderOverview extends Command
             $price = $price/100;
 
             $message .= "\n==================";
-            $message .= "\n{$order->product->name}：{$amount}".($paidByVoucher?"(含{$paidByVoucher})张水票":'');
+            $message .= "\n{$order->product->name}：{$amount}".($paidByVoucher?"(含{$paidByVoucher}张水票)":'');
             $message .= "\n金额：¥{$price}";
         }
         $message .= "\n==================";
-        $message .= "\n起始时间：" . $from;
-        $message .= "\n截止时间：" . $to;
+        $message .= "\n起始时间：" . $from->format('M-d H:i');
+        $message .= "\n截止时间：" . $to->format('M-d H:i');
         // $this->sendMessage($message);
         app(Xbot::class)->send($message, "20388549423@chatroom");
 
@@ -132,8 +132,8 @@ class OrderOverview extends Command
             }
             $message .= "\n--------------------------";
         }
-        $message .= "\n起始时间：" . $from;
-        $message .= "\n截止时间：" . $to;
+        $message .= "\n起始时间：" . $from->format('M-d H:i');
+        $message .= "\n截止时间：" . $to->format('M-d H:i');
         app(Xbot::class)->send($message, "20388549423@chatroom");
 
         return 0;

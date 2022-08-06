@@ -76,7 +76,7 @@ class MessageController extends Controller
                     $orderData =[
                         'customer_id' => $customer->id,
                         'product_id' => 8, //product_id=8 赠送老师20张水票活动
-                        'amount' => 1, //数量
+                        'amount' => $tickets, //数量
                         'deliver_id' => null,
                         'price' => 0,
                         'status' => 1, //1 已wx支付
