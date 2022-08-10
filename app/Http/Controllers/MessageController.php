@@ -180,16 +180,15 @@ class MessageController extends Controller
 
         // 如果是 995, 自由聊天5分钟
         // stop.service.and.chat.as.human
+        if($keyword == '995'){
+            $this->cache->put('stop.service', true, 300);
+            return $this->sendMessage('现在暂时退出订水系统，如需订水，请5分钟再试，如有任何问题，请和我留言，稍后回复您，谢谢！');
+        }
         // 【讲个笑话】或【石岭天气】
         if(Str::contains($keyword, [
-            '995',
             '讲个笑话',
             '石岭天气',
         ])){
-            if($keyword == '995'){
-                $this->cache->put('stop.service', true, 300);
-                return $this->sendMessage('现在暂时退出订水系统，如需订水，请5分钟再试，如有任何问题，请和我留言，稍后回复您，谢谢！');
-            }
 
             $this->cache->flush();
             $res = app(Icr::class)->run($keyword);
