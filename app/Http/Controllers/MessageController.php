@@ -290,9 +290,12 @@ class MessageController extends Controller
 
         // 既有地址，又有手机号，下面处理老客户
         // 模拟支付测试： [收到转账]:￥44.0:附言:测试
-        if(Str::contains($request['content'], ['[收到转账]:￥','.0:附言:测试'])
-            || $request['type'] == 'wcpay'){
-            // $request['content'] = "[收到转账]:￥44.0:附言:测试";//todo  delete!
+        if($request['type'] == 'wcpay'){
+            // Str::contains($request['content'], ['[收到转账]:￥','.0:附言:测试'])
+            // TODO 转账分2种情况，接收 或 主动转账，需要区分，主动转账的话，不计算！
+            // 如果是给自己转账，忽略 余阿姨 
+            if(in_array($customer->wxid, ['wxid_4el5fs4r5edb22'])) return;
+
             $tmp = explode('￥', $request['content']);
             $tmp = explode(':', $tmp[1]);
             $paidMoney = (int)$tmp[0]*100; //8.0 => 800
