@@ -81,13 +81,12 @@ class MessageController extends Controller
                         'price' => 0,
                         'status' => 1, //1 已wx支付
                     ];
-                    $msg = "兑换成功，{$tickets}张水票已入您的电子账户，编号No:{$voucher->id}\n回复【9391】即可水票订水！";
                     $this->createOrder($orderData);
-                    return $this->sendMessage($msg);
+                    $msg = "兑换成功，{$tickets}张水票已入您的电子账户，编号No:{$voucher->id}\n回复【9391】即可水票订水！";
                 }catch (\Exception $e){
                     $msg = "兑换码有误，请检查后再试\n" . $e->getMessage();
-                    $this->sendMessage($msg);
                 }
+                return $this->sendMessage($msg);
             }
             return $this->_return();
         }
@@ -117,15 +116,19 @@ class MessageController extends Controller
                     }
                     $fromRemark = explode("~", $this->remark);// 厂~1~xxx
                     $deliverId = $fromRemark[1];// 1~4群
+                    if(!in_array($deliverId, [1,2,3,4])){
+                        return $this->sendMessage("认领师傅备注不正确！应为：\n厂~3~xxx\n厂~4~xxx", $wxidOrCurrentRoom);
+                        // 请备注好师傅后，让师傅发1~2条消息给 机器人
+                    }
                     // $deliverId = 2;
 
                     $secondLine = explode(":", $contents[1]); //客户:AI天空蔚蓝:1
                     $customer = Customer::find($secondLine[2]);
                     $customer->update(['deliver_id' => $deliverId]);//1~4
-                    $this->sendMessage("[认领成功]->{$deliverId}群\n{$contents[1]}\n{$contents[2]}\n{$contents[3]}\n快去【sq师傅{$deliverId}群】接单吧[胜利][强]", $wxidOrCurrentRoom);
                     // TODO 认领成功前，不可再次下单！
                     // 把首单发送到指定的群！
                     Order::where('customer_id', $customer->id)->latest()->first()->update(['deliver_id'=>$deliverId]); // 暂时借用 deliver_id 字段
+                    return $this->sendMessage("[认领成功]->{$deliverId}群\n{$contents[1]}\n{$contents[2]}\n{$contents[3]}\n快去【sq师傅{$deliverId}群】接单吧[胜利][强]", $wxidOrCurrentRoom);
                 }
             }
             // sq对账群 统计群 上下班时间设置
@@ -170,10 +173,11 @@ class MessageController extends Controller
                     $order->deliver_id = $customer->id;
                     $order->status = 4; //4 配送完毕，收到配送人员反馈
                     $order->saveQuietly(); // 不要OrderObserver
-                    $this->sendMessage("[订单完成]\n{$contents[1]}\n{$contents[2]}\n{$contents[3]}\n{$contents[4]}\n{$contents[5]}\n谢谢师傅，辛苦了[抱拳][强]", $wxidOrCurrentRoom);
+                    $msg = "[订单完成]\n{$contents[1]}\n{$contents[2]}\n{$contents[3]}\n{$contents[4]}\n{$contents[5]}\n谢谢师傅，辛苦了[抱拳][强]";
                 }else{
-                    return $this->sendMessage("认领师傅备注不正确！应为：\n厂~1~xxx\n厂~2~xxx", $wxidOrCurrentRoom);
+                    $msg = "认领师傅备注不正确！应为：\n厂~1~xxx\n厂~2~xxx";
                 }
+                return $this->sendMessage($msg, $wxidOrCurrentRoom);
             }
             return $this->_return();
         }
@@ -344,9 +348,9 @@ class MessageController extends Controller
                         'price' => $nextprice,
                         'status' => 1, //1 已wx支付
                     ];
-                    $this->sendMessage("{$tickets}张水票已入您的电子账户，编号No:{$voucher->id}\n回复【9391】即可水票订水！");
                     $this->isPaid = true;
-                    return $this->createOrder($orderData);
+                    $this->createOrder($orderData);
+                    return $this->sendMessage("{$tickets}张水票已入您的电子账户，编号No:{$voucher->id}\n回复【9391】即可水票订水！");
                 }
 
                 // 创建订单
@@ -364,9 +368,9 @@ class MessageController extends Controller
                 }else{
                     $message .= "\n马上送到🏃";
                 }
-                $this->sendMessage($message);
                 $this->isPaid = true;
-                return $this->createOrder($orderData);
+                $this->createOrder($orderData);
+                return $this->sendMessage($message);
             }else{
                 // $isSelf "wxid_i5qnb05xy9522"
                 if($this->wxid == 'wxid_i5qnb05xy9522'){
@@ -415,10 +419,10 @@ class MessageController extends Controller
                         $message .= "\n师傅已接单，正在快马加鞭！";
                     }
                 }
-                return $this->sendMessage($message);
             }else{
-                return $this->sendMessage('❌手机号错误，请重新回复准确手机号码！');
+                $message = "❌手机号错误，请重新回复准确手机号码！";
             }
+            return $this->sendMessage($message);
         }
 
         // 获取地址后，存储
@@ -461,20 +465,29 @@ class MessageController extends Controller
 
             // 水票购水
             if($voucher && $productKey==9391){
-                $left = --$voucher->left;
-                $voucher->update(['left' => $left]);//1桶 默认
-                $message = "您的水票账户No.{$voucher->id}剩余{$left}张，派单已发送师傅, 马上出发配送！";
-                $orderData = [
-                    'customer_id' => $customer->id,
-                    'product_id' => 1, //product_id: "9391",
-                    'amount' => 1, //几桶
-                    'voucher_id' => $voucher->id,
-                    'deliver_id' => $customer->deliver_id,
-                    'status' => 1, // 信息整全
-                ];
+                // 水票扣除和订单创建 要在一个整体里 
+                // https://betterprogramming.pub/using-database-transactions-in-laravel-8b62cd2f06a5
+                try {
+                    DB::beginTransaction(); // Tell Laravel all the code beneath this is a transaction
+                    $left = --$voucher->left;
+                    $voucher->update(['left' => $left]);//1桶 默认
+                    $orderData = [
+                        'customer_id' => $customer->id,
+                        'product_id' => 1, //product_id: "9391",
+                        'amount' => 1, //几桶
+                        'voucher_id' => $voucher->id,
+                        'deliver_id' => $customer->deliver_id,
+                        'status' => 1, // 信息整全
+                    ];
+                    $this->createOrder($orderData);
+                    DB::commit();
+                    $message = "您的水票账户No.{$voucher->id}剩余{$left}张，派单已发送师傅, 马上出发配送！";
+                    return $this->sendMessage($message);
+                }catch(\Exception $e) {
+                    DB::rollBack(); // Tell Laravel, "Please don't persist to DB"
+                    return $this->sendMessage($e->getMessage(), 'bluesky_still');
+                }
 
-                $this->sendMessage($message);
-                return $this->createOrder($orderData);
             }
             // 已知道用户要什么水
             {
@@ -572,6 +585,7 @@ class MessageController extends Controller
     protected function sendMessage($content, $wxid=null)
     {
         $wxid = $wxid?:$this->wxid;
+        // 如果发送不成功！ cURL error 28: Operation timed out after 30001 milliseconds with 0 bytes received
         return app(Xbot::class)->send($content, $wxid);
     }
 
