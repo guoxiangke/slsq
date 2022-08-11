@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
@@ -201,16 +202,6 @@ class MessageController extends Controller
             }
         }
 
-        // 上下班 时间处理
-        $now = date('G.i'); // 0-24 (7.30)
-        $on = option('on', 8);
-        $off = option('off', 21);
-        if($now >= $off || $now <= $on){
-            if($this->cache->has('menu.count')){ //出现1次！
-                $this->sendMessage("请注意：\n师傅上班时间：{$on}-{$off}\n非营业期间可正常下单，开工后优先派送[抱拳]");
-            }
-        }
-
         switch ($keyword) {
             case '一桶':
             case '1桶':
@@ -256,6 +247,15 @@ class MessageController extends Controller
             // return $this->_return();
         }
 
+        // 上下班 时间处理
+        $now = date('G.i'); // 0-24 (7.30)
+        $on = option('on', 8);
+        $off = option('off', 21);
+        if($now >= $off || $now <= $on){
+            if($this->cache->has('menu.count')){ //出现1次！
+                $this->sendMessage("请注意：\n师傅上班时间：{$on}-{$off}\n非营业期间可正常下单，开工后优先派送[抱拳]");
+            }
+        }
         ////////////////////////////Menu//////////////////////////////
         $vouchers = Voucher::where('customer_id', $customer->id)->where('left', ">" , 0)->get();
         $hasVouchers = $vouchers->count()?true:false;
