@@ -31,4 +31,15 @@ class Customer extends Model
     public function isDeliver(){
        return Str::startsWith($this->name ,["厂～"]);
     }
+
+    public function getClaimParagraph(): string
+    {
+        $message  = "[客户认领]";
+        $message .= "\n客户:" . $this->name. ':'. $this->id ;
+        $message .= "\n电话:" . $this->telephone;
+        $message .= "\n地址:" . $this->address_detail;
+        $message .= "\n认领此顾客，请转发至本群";
+        return $message;
+    }
+
 }

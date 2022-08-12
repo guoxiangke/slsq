@@ -25,11 +25,8 @@ class OrderObserver
 
         // Fix Bug: 什么是首单？
         // 除了当前单子外，没有其他单子
-        $count = Order::where('customer_id', $order->customer_id)
-            ->where('product_id','<>',8)
-            ->where('id','<>',$order->id)
-            ->count();
-        if($count == 0){
+        $count = Order::where('customer_id', $order->customer_id)->count();
+        if($count == 1 && $order->product_id != 8){
             $voucher = Voucher::create([
                 'customer_id' => $order->customer_id,
                 'amount' => 1,
@@ -40,7 +37,12 @@ class OrderObserver
             $to = $order->customer->wxid; //分群
             return app(Xbot::class)->send($message, $to);
         }
-        if(!$order->customer->deliver) return; //首单无地址
+        // 补认领, 再次分单
+        if(!$order->customer->deliver){
+            $msg = $order->customer->getClaimParagraph();
+            $msg .= "\n⚠️漏认领顾客，请再次转发";
+            return app(Xbot::class)->send($msg, '21182221243@chatroom');
+        }
         $this->sendMessage($order);
     }
     /**
