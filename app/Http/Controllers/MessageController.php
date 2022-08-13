@@ -14,6 +14,7 @@ use App\Models\Order;
 use App\Models\Voucher;
 use App\Services\Xbot;
 use App\Services\Icr;
+use Carbon\Carbon;
 
 
 
@@ -126,9 +127,16 @@ class MessageController extends Controller
                     $secondLine = explode(":", $contents[1]); //客户:AI天空蔚蓝:1
                     $customer = Customer::find($secondLine[2]);
                     $customer->update(['deliver_id' => $deliverId]);//1~4
-                    // TODO 认领成功前，不可再次下单！
-                    // 把首单发送到指定的群！
-                    Order::where('customer_id', $customer->id)->latest()->first()->update(['deliver_id'=>$deliverId]); // 暂时借用 deliver_id 字段
+                    // TODO 认领成功前，不可再次下单！  x不再做了！ 
+                    // 把首N单发送到指定的群！
+                    // 暂时借用的 deliver_id 字段，送完后更新成师傅的ID
+                    // ->each() : When issuing a mass update via Eloquent, the saved and updated model events will not be fired for the updated models. This is because the models are never actually retrieved when issuing a mass update.
+                    Order::where('customer_id', $customer->id)
+                        ->whereDate('created_at', Carbon::today())
+                        ->where('status','<>',4)
+                        ->each(function($order) use($deliverId) {
+                            $order->update(['deliver_id'=>$deliverId]);
+                        });
                     return $this->sendMessage("[认领成功]->{$deliverId}群\n{$contents[1]}\n{$contents[2]}\n{$contents[3]}\n快去【sq师傅{$deliverId}群】接单吧[胜利][强]", $wxidOrCurrentRoom);
                 }
             }
