@@ -58,7 +58,7 @@ class OrderObserver
 
     private function sendMessage(Order $order)
     {
-        $message = "[订单跟踪]\n" . $order->product->name . ":" . $order->amount . $order->product->unit . ":" . $order->id;
+        $message = $order->product->name . ":" . $order->amount . $order->product->unit . ":" . $order->id;
 
         // 购买水票
         $productIsVoucher = Str::contains($order->product->name, ['水票'])?true:false;
@@ -73,7 +73,9 @@ class OrderObserver
         // sq水票订单
         if($productIsVoucher){
             $to = '20779741807@chatroom';
+            $message = "[水票订单]\n" . $message;
         }else{
+            $message = "[订单跟踪]\n" . $message;
             $deliverId = $order->customer->deliver->id; //分群
             $deliver = Deliver::find($deliverId);
             $to = $deliver->wxid; // 发到对应的4个群里！
