@@ -504,7 +504,7 @@ class MessageController extends Controller
                 $productIsVoucher = Str::contains($product->name, ['水票'])?true:false;
                 {
                     $price = $products[$productKey]['price']/100;
-                    $message = "微信转账 ¥{$price}，". ($productIsVoucher?"您将获得":"师傅马上出发！") ."\n【{$products[$productKey]['name']}】" . ($productIsVoucher?"\n购买成功后自动入账、自动抵付":"\n若定多{$product->unit}，请转¥{$product->unit}数X{$price}元");
+                    $message = "微信转账 ¥{$price}，". ($productIsVoucher?"您将获得":"师傅马上出发！") ."\n【{$products[$productKey]['name']}】" . ($productIsVoucher?"\n购买成功后自动入账、自动抵付":"\n若定多{$product->unit}，请转¥{$product->unit}数X{$price}元\n如有需要，老板姓余");
                     if(!$productIsVoucher) $this->cache->put('order.need.amount', true, 60);
                     return $this->sendMessage($message);
                 }
@@ -523,6 +523,9 @@ class MessageController extends Controller
                }
                if(Str::contains($keyword, ['纸', '纸质', '纸质水票', '能'])){
                     return $this->sendMessage("不好意思，暂时不支持纸质水票下单，请使用传统方式下单，谢谢您的理解");
+               }
+               if(Str::contains($keyword, ['姓'])){
+                    return $this->sendMessage("老板姓名是：余小云，请放心付款下单！");
                }
                 // 如果用户收到1次菜单了，不再发送菜单，随意聊天
                 if($this->cache->get('menu.count')>0){
