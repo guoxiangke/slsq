@@ -357,8 +357,9 @@ class MessageController extends Controller
                         'status' => 1, //1 已wx支付
                     ];
                     $this->isPaid = true;
+                    $this->sendMessage("{$tickets}张水票已入您的电子账户，编号No:{$voucher->id}\n回复【9391】即可水票订水！");
                     $this->createOrder($orderData);
-                    return $this->sendMessage("{$tickets}张水票已入您的电子账户，编号No:{$voucher->id}\n回复【9391】即可水票订水！");
+                    return $this->_return();
                 }
 
                 // 创建订单
