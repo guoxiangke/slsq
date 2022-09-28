@@ -38,7 +38,7 @@ class MessageController extends Controller
         $isRoom = Str::endsWith($wxidOrCurrentRoom, '@chatroom');
         // personal
         $this->wxid = $wxidOrCurrentRoom;
-        $this->remark = $request['remark'];
+        $this->remark = Str::replace("\n", '', $request['remark']);
         if($isRoom){
              $this->wxid = $request['from'];
              $this->remark = $request['from_remark'];
