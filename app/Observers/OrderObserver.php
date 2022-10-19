@@ -26,7 +26,9 @@ class OrderObserver
         // Fix Bug: 什么是首单？
         // 除了当前单子外，没有其他单子
         $count = Order::where('customer_id', $order->customer_id)->count();
-        if($count == 1 && $order->product_id != 8){
+        // if($count == 1 && $order->product_id != 8){ 
+        // 就是首单买水票送、八块钱一桶就不送了
+        if($count == 1 && in_array($order->product_id,[4,5])){
             $voucher = Voucher::create([
                 'customer_id' => $order->customer_id,
                 'amount' => 1,
