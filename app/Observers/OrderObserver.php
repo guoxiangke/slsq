@@ -23,11 +23,11 @@ class OrderObserver
         // 首单赠送1张水票
         // product_id=8 赠送老师20张水票活动
 
-        // Fix Bug: 什么是首单？
-        // 除了当前单子外，没有其他单子
-        $count = Order::where('customer_id', $order->customer_id)->count();
+        // Fix Bug: 什么是首单水票？
+        $count = Order::where('customer_id', $order->customer_id)->whereIn('product_id', [4,5])->count();
         // if($count == 1 && $order->product_id != 8){ 
         // 就是首单买水票送、八块钱一桶就不送了
+        // 系统里有一个水票订单，就是当前的这个
         if($count == 1 && in_array($order->product_id,[4,5])){
             $voucher = Voucher::create([
                 'customer_id' => $order->customer_id,
@@ -35,7 +35,7 @@ class OrderObserver
                 'left' => 1,
                 'price' => 0,
             ]);
-            $message = "恭喜您，完成首单买一送一活动[庆祝]\n已赠送1张电子水票到您的账户，编号No.{$voucher->id}[烟花]\n下次订水优先使用电子水票抵付\n请继续完善送水地址电话[握手]";
+            $message = "恭喜您，完成水票首单买一送一活动[庆祝]\n已赠送1张电子水票到您的账户，编号No.{$voucher->id}[烟花]\n订水优先使用电子水票抵付\n请继续完善送水地址电话[握手]";
             $to = $order->customer->wxid; //分群
             return app(Xbot::class)->send($message, $to);
         }
