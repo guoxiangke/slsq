@@ -24,11 +24,11 @@ class OrderObserver
         // product_id=8 赠送老师20张水票活动
 
         // Fix Bug: 什么是首单水票？
-        $count = Order::where('customer_id', $order->customer_id)->whereIn('product_id', [4,5])->count();
+        $count = Order::where('customer_id', $order->customer_id)->whereIn('product_id', [2,3])->count();
         // if($count == 1 && $order->product_id != 8){ 
         // 就是首单买水票送、八块钱一桶就不送了
         // 系统里有一个水票订单，就是当前的这个
-        if($count == 1 && in_array($order->product_id,[4,5])){
+        if($count == 1 && in_array($order->product_id,[2,3])){
             $voucher = Voucher::create([
                 'customer_id' => $order->customer_id,
                 'amount' => 1,
