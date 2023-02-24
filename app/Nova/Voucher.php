@@ -8,6 +8,7 @@ use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Fields\DateTime;
 use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Http\Requests\NovaRequest;
+use Laravel\Nova\Query\Search\SearchableRelation;
 
 class Voucher extends Resource
 {
@@ -25,6 +26,10 @@ class Voucher extends Resource
      */
     public static $title = 'left';
 
+    public static function searchableColumns()
+    {
+        return ['id', new SearchableRelation('customer', 'name')];
+    }
     /**
      * The columns that should be searched.
      *
@@ -32,6 +37,7 @@ class Voucher extends Resource
      */
     public static $search = [
         'id',
+        'customer.name',
     ];
 
     /**
@@ -44,7 +50,7 @@ class Voucher extends Resource
     {
         return [
             ID::make(__('ID'), 'id')->sortable(),
-            BelongsTo::make('customer'),
+            BelongsTo::make('customer')->searchable(),
             Text::make('amount')->rules('required', 'string', 'max:255'),
             Text::make('left')->rules('required', 'string', 'max:255'),
             Text::make('price')->rules('required'),
